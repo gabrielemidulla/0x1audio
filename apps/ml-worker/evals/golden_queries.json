@@ -1,0 +1,17 @@
+{
+  "description": "Golden queries for Tunelink ML ranking. Reindex after recipe changes, then score Precision@k / Recall@k / MRR.",
+  "queries": [
+    {
+      "id": "calm-ambient",
+      "query": "calm ambient pad",
+      "expect_none": false,
+      "notes": "Soft semantic recall; tag overlap may boost but must not gate."
+    },
+    {
+      "id": "absent-concept",
+      "query": "opera aria",
+      "expect_none": true,
+      "notes": "Should stay empty / weak when catalog has no opera-like tracks."
+    }
+  ]
+}

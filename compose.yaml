@@ -1,0 +1,105 @@
+# Shared infrastructure (Postgres, Qdrant, MinIO, Ollama).
+# Dev:  docker compose -f compose.yaml -f compose.dev.yaml up --build
+# Prod: docker compose -f compose.yaml -f compose.prod.yaml up -d --build
+# Infra only: docker compose up -d
+#
+# Host port publishes live in compose.dev.yaml / compose.prod.yaml so
+# bind address (LAN vs localhost) stays overlay-specific.
+# ml-worker always expects an NVIDIA GPU (Container Toolkit required).
+# Ollama runs CPU-only (OLLAMA_NUM_GPU=0) so MuQ keeps the GPU.
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tunelink}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tunelink}
+      POSTGRES_DB: ${POSTGRES_DB:-tunelink}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-tunelink} -d ${POSTGRES_DB:-tunelink}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  qdrant:
+    image: qdrant/qdrant:v1.15.0
+    restart: unless-stopped
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    environment:
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:-tunelink-qdrant-dev-key}
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  minio:
+    image: minio/minio:RELEASE.2025-05-24T17-08-30Z
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-tunelink}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-tunelink-dev-secret}
+    volumes:
+      - minio_data:/data
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-05-21T01-59-54Z
+    depends_on:
+      minio:
+        condition: service_started
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 $${MINIO_ROOT_USER:-tunelink} $${MINIO_ROOT_PASSWORD:-tunelink-dev-secret};
+      do sleep 1; done;
+      mc mb --ignore-existing local/$${MINIO_BUCKET:-catalog-audio};
+      exit 0;
+      "
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-tunelink}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-tunelink-dev-secret}
+      MINIO_BUCKET: ${MINIO_BUCKET:-catalog-audio}
+    restart: "no"
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    environment:
+      OLLAMA_NUM_GPU: "0"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  ollama-init:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        echo "Pulling lfm2.5:8b…"
+        ollama pull lfm2.5:8b
+        echo "Model ready"
+    restart: "no"
+
+volumes:
+  postgres_data:
+  qdrant_data:
+  minio_data:
+  ollama_data:

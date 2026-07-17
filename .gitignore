@@ -1,0 +1,74 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Env & secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.venv/
+venv/
+.env/
+*.egg-info/
+.eggs/
+dist/
+build/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.uv/
+
+# Node / frontend
+node_modules/
+.npm/
+.pnpm-store/
+dist/
+build/
+.vite/
+*.tsbuildinfo
+.turbo/
+
+# Generated clients / stubs (when added)
+**/generated/
+
+# React Router
+**/.react-router/
+
+# Prefer shared stubs generated under apps/*/…/generated/ (committed).
+# Local protoc tool venv:
+proto/.venv/
+
+# ML / models cache
+.cache/
+models/
+*.pt
+*.onnx
+*.bin
+*.pb
+apps/ml-worker/data/models/**/*.pb
+
+# Logs & temp
+*.log
+tmp/
+temp/
+.tmpdir/
+
+# Docker
+docker-data/
+pw.env
+
+# Personal
+resume.tex

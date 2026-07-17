@@ -1,0 +1,125 @@
+# Hot-reload app services. Merges with compose.yaml (shared infra).
+# Binds 0.0.0.0 so the stack is reachable on the LAN.
+# ml-worker uses the CUDA image + NVIDIA GPU.
+#
+#   docker compose -f compose.yaml -f compose.dev.yaml up --build
+
+x-backend-env: &backend-env
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-tunelink}:${POSTGRES_PASSWORD:-tunelink}@postgres:5432/${POSTGRES_DB:-tunelink}
+  JWT_SECRET: ${JWT_SECRET:-tunelink-dev-jwt-secret-change-me}
+  JWT_ISSUER: ${JWT_ISSUER:-tunelink}
+  # Vite proxies /api → backend, so browser origin is the frontend host (any LAN IP).
+  CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+  MINIO_ENDPOINT: minio:9000
+  MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-tunelink}
+  MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-tunelink-dev-secret}
+  MINIO_BUCKET: ${MINIO_BUCKET:-catalog-audio}
+  MINIO_SECURE: "false"
+  ML_WORKER_TARGET: ${ML_WORKER_TARGET:-ml-worker:50051}
+  OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+  OLLAMA_MODEL: ${OLLAMA_MODEL:-lfm2.5:8b}
+  OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-120}
+
+services:
+  postgres:
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+
+  qdrant:
+    ports:
+      - "${QDRANT_PORT:-6333}:6333"
+      - "${QDRANT_GRPC_PORT:-6334}:6334"
+
+  minio:
+    ports:
+      - "${MINIO_API_PORT:-9100}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+
+  ollama:
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    environment:
+      <<: *backend-env
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./apps/backend:/app
+      - backend_venv:/app/.venv
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+      ollama:
+        condition: service_healthy
+
+  backend-worker:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    command: ["uv", "run", "python", "-m", "tunelink_backend.worker"]
+    environment:
+      <<: *backend-env
+    volumes:
+      - ./apps/backend:/app
+      - backend_venv:/app/.venv
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+      ml-worker:
+        condition: service_started
+
+  ml-worker:
+    build:
+      context: ./apps/ml-worker
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    gpus: all
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+      CUDA_VISIBLE_DEVICES: ${CUDA_VISIBLE_DEVICES:-0}
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_API_KEY: ${QDRANT_API_KEY:-tunelink-qdrant-dev-key}
+      ESSENTIA_MODELS_DIR: /app/data/models/essentia
+      HF_HOME: /models/huggingface
+      ML_WORKER_HOST: 0.0.0.0
+      PYTHONPATH: /app/src
+    ports:
+      - "${ML_WORKER_PORT:-50051}:50051"
+    volumes:
+      - ./apps/ml-worker:/app
+      - ml_worker_hf:/models/huggingface
+    depends_on:
+      - qdrant
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    environment:
+      # Empty → same-origin /api via Vite proxy (works from any LAN host).
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+      DOCKER: "1"
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    volumes:
+      - ./apps/frontend:/app
+      - frontend_node_modules:/app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  backend_venv:
+  ml_worker_hf:
+  frontend_node_modules:
