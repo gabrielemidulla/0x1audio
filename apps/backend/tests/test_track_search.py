@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from sqlalchemy import text
 
 from ox1audio_backend.models import TrackStatus
 from ox1audio_backend.services.track_search import (
@@ -43,9 +44,28 @@ def test_track_metadata_match_clause_builds() -> None:
     assert track_metadata_match_clause("Ghost Town Arcado") is not None
 
 
+async def _postgres_ready() -> bool:
+    from ox1audio_backend.db import SessionLocal
+
+    try:
+        async with SessionLocal() as db:
+            await db.execute(text("SELECT 1"))
+        return True
+    except OSError:
+        return False
+    except Exception as exc:
+        # asyncpg / SQLAlchemy wrap refused connections
+        if "Connect call failed" in str(exc) or "Connection refused" in str(exc):
+            return False
+        raise
+
+
 @pytest.mark.asyncio
 async def test_search_tracks_by_metadata_fuzzy_and_exact() -> None:
-    """Single DB session / event loop to avoid asyncpg pool loop conflicts."""
+    """Needs local Postgres + catalog seed (pg_trgm). Skipped in CI without DB."""
+    if not await _postgres_ready():
+        pytest.skip("Postgres not available")
+
     from ox1audio_backend.db import SessionLocal
 
     async with SessionLocal() as db:
