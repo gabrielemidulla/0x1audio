@@ -9,6 +9,7 @@ import {
 } from "three"
 
 import { paletteFromHex } from "~/lib/cover-palette"
+import { FALLBACK_COVER_COLOR } from "~/client/constants.gen"
 
 type PaletteRingProps = {
   /** Seed color (usually track.cover_color). */
@@ -25,7 +26,10 @@ export function PaletteRing({
   opacity = 1,
 }: PaletteRingProps) {
   const colors = useMemo(
-    () => paletteFromHex(typeof color === "string" ? color : "#64748b").colors,
+    () =>
+      paletteFromHex(
+        typeof color === "string" ? color : FALLBACK_COVER_COLOR,
+      ).colors,
     [color],
   )
 
@@ -34,7 +38,7 @@ export function PaletteRing({
     const geometry = new RingGeometry(2.22, 2.42, 72)
     const position = geometry.getAttribute("position")
     const stops = colors.slice(0, 4).map((hex) => new Color(hex))
-    while (stops.length < 2) stops.push(new Color("#64748b"))
+    while (stops.length < 2) stops.push(new Color(FALLBACK_COVER_COLOR))
 
     const vertexColors = new Float32Array(position.count * 3)
     const mixed = new Color()

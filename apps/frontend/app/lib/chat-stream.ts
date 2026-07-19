@@ -10,6 +10,7 @@ export type ChatStreamHandlers = {
   onUser?: (message: ChatMessageOut) => void
   onStatus?: (phase: ChatStreamStatusPhase, name?: string | null) => void
   onToken?: (text: string) => void
+  onTitle?: (title: string) => void
   onDone?: (payload: {
     message: ChatMessageOut | null
     tracks: TrackOut[]
@@ -23,6 +24,7 @@ type StreamEvent = {
   type: string
   message?: ChatMessageOut | null
   text?: string
+  title?: string
   phase?: ChatStreamStatusPhase
   name?: string | null
   tracks?: TrackOut[]
@@ -71,6 +73,9 @@ function handleEvent(event: StreamEvent, handlers: ChatStreamHandlers): void {
       break
     case "token":
       if (event.text) handlers.onToken?.(event.text)
+      break
+    case "title":
+      if (event.title) handlers.onTitle?.(event.title)
       break
     case "done":
       handlers.onDone?.({

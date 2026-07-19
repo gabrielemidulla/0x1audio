@@ -8,8 +8,15 @@ import {
 } from "react-router"
 
 import type { Route } from "./+types/root"
+import { FullPageSpinner } from "~/components/loading"
+import { Toaster } from "~/components/ui/sonner"
 import { TooltipProvider } from "~/components/ui/tooltip"
 import "./app.css"
+
+export const links: Route.LinksFunction = () => [
+  { rel: "icon", href: "/favicon.ico", sizes: "48x48" },
+  { rel: "icon", href: "/icon.svg", type: "image/svg+xml" },
+]
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -22,6 +29,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <TooltipProvider>{children}</TooltipProvider>
+        <Toaster />
         <ScrollRestoration />
         <Scripts />
       </body>
@@ -30,11 +38,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export function HydrateFallback() {
-  return (
-    <main className="container mx-auto p-4 pt-16">
-      <p className="text-muted-foreground text-sm">Loading…</p>
-    </main>
-  )
+  return <FullPageSpinner />
 }
 
 export default function App() {

@@ -1,0 +1,8 @@
+# Personal overrides — copy to config.local.yaml (gitignored).
+# Only set keys you want to change; the rest stay from config.yaml.
+#
+#   cp config.local.example.yaml config.local.yaml
+#
+# audio_search_weight: 0.3
+# profile_search_weight: 0.7
+# tag_boost_sigma: 0.25

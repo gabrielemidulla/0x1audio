@@ -1,0 +1,25 @@
+# Non-secret ML worker defaults (committed).
+# Personal tweaks: copy config.local.example.yaml → config.local.yaml (gitignored).
+# Deploy/secrets: env.
+
+# Models
+muq_model_id: OpenMuQ/MuQ-MuLan-large
+language_model_id: sentence-transformers/all-MiniLM-L6-v2
+language_vector_size: 384
+# Essentia heads default to <ml-worker>/data/models/essentia (override in config.local.yaml)
+
+# Qdrant client (URL / API key stay in env)
+qdrant_timeout_seconds: 30
+
+# Hybrid search blend
+audio_search_weight: 0.45
+profile_search_weight: 0.55
+baseline_sample: 256
+min_sample: 8
+min_standout_sigma: 1.0
+sigma_full_scale: 4.0
+tag_boost_sigma: 0.15
+
+# Profile embedding blend
+profile_sentence_weight: 0.5
+profile_label_relative: 0.35

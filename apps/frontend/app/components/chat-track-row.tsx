@@ -2,9 +2,11 @@ import { Pause, Play } from "@phosphor-icons/react"
 
 import { trackCoverUrl, type TrackOut } from "~/lib/api"
 import { toggleTrack, useAudioPlayer } from "~/lib/audio-player"
+import { ArtistCredits } from "~/components/artist-credits"
 import { cn } from "~/lib/utils"
 
-const FALLBACK_COLOR = "#64748b"
+import { FALLBACK_COVER_COLOR } from "~/client/constants.gen"
+
 
 export function ChatTrackRow({ track }: { track: TrackOut }) {
   const player = useAudioPlayer()
@@ -25,7 +27,7 @@ export function ChatTrackRow({ track }: { track: TrackOut }) {
       <span className="relative shrink-0">
         <span
           className="relative block size-9 overflow-hidden rounded-md bg-muted"
-          style={{ backgroundColor: track.cover_color || FALLBACK_COLOR }}
+          style={{ backgroundColor: track.cover_color || FALLBACK_COVER_COLOR }}
         >
           {track.has_cover ? (
             <img
@@ -52,7 +54,7 @@ export function ChatTrackRow({ track }: { track: TrackOut }) {
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-medium">{track.title}</span>
         <span className="text-muted-foreground block truncate text-xs">
-          {track.artist || "Unknown artist"}
+          <ArtistCredits track={track} className="text-xs" link={false} />
         </span>
       </span>
     </button>

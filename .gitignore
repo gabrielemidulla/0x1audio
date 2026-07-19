@@ -12,6 +12,10 @@ Thumbs.db
 .env.*.local
 !.env.example
 
+# Personal config overlays (see apps/ml-worker/config.local.example.yaml)
+**/config.local.yaml
+**/config.local.yml
+
 # Python
 __pycache__/
 *.py[cod]
@@ -41,13 +45,10 @@ build/
 *.tsbuildinfo
 .turbo/
 
-# Generated clients / stubs (when added)
-**/generated/
-
 # React Router
 **/.react-router/
 
-# Prefer shared stubs generated under apps/*/…/generated/ (committed).
+# Protobuf stubs under apps/*/…/generated/ are committed (see proto/generate.sh).
 # Local protoc tool venv:
 proto/.venv/
 

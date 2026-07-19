@@ -1,0 +1,8 @@
+# Personal overrides — copy to config.local.yaml (gitignored).
+# Only set keys you want to change; the rest stay from config.yaml.
+#
+#   cp config.local.example.yaml config.local.yaml
+#
+# ollama_model: lfm2.5:8b
+# chat_max_tool_rounds: 8
+# max_zip_files: 500

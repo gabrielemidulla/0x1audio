@@ -3,7 +3,18 @@ import { Link, useNavigate } from "react-router"
 import { Playlist, Plus, Trash } from "@phosphor-icons/react"
 
 import { ChatPrompter } from "~/components/chat-prompter"
+import { PlaylistColorPicker } from "~/components/playlist-color-picker"
+import { PlaylistCardsSkeleton } from "~/components/loading"
+import { Reveal } from "~/components/reveal"
 import { api, type PlaylistSummaryOut } from "~/lib/api"
+import { type PlaylistColor } from "~/lib/api"
+import { playlistCardPalette, playlistThemeColors } from "~/lib/playlist-palette"
+import {
+  hasPlaylistsEntered,
+  markPlaylistsEntered,
+  readPlaylistsSnapshot,
+  writePlaylistsSnapshot,
+} from "~/lib/playlists-cache"
 import { cn } from "~/lib/utils"
 import {
   AlertDialog,
@@ -54,6 +65,8 @@ const PLAYLIST_IDEAS = [
   },
 ] as const
 
+const CARD_DELAYS = ["delay-0", "delay-100", "delay-200", "delay-300"] as const
+
 function formatUpdated(iso: string): string {
   return new Date(iso).toLocaleString(undefined, {
     dateStyle: "medium",
@@ -63,18 +76,32 @@ function formatUpdated(iso: string): string {
 
 export default function PlaylistsIndexPage() {
   const navigate = useNavigate()
-  const [playlists, setPlaylists] = useState<PlaylistSummaryOut[] | null>(null)
+  const cached = readPlaylistsSnapshot()
+  const alreadyEntered = hasPlaylistsEntered()
+
+  const [playlists, setPlaylists] = useState<PlaylistSummaryOut[] | null>(
+    () => cached,
+  )
   const [error, setError] = useState<string | null>(null)
   const [prompt, setPrompt] = useState("")
   const [asking, setAsking] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
+  const [createColor, setCreateColor] =
+    useState<PlaylistColor>("slate")
   const [creating, setCreating] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<PlaylistSummaryOut | null>(
     null,
   )
   const [deleting, setDeleting] = useState(false)
+  const [heroIn, setHeroIn] = useState(alreadyEntered)
+  const [libraryMounted, setLibraryMounted] = useState(
+    () => alreadyEntered && cached != null,
+  )
+  const [libraryIn, setLibraryIn] = useState(
+    () => alreadyEntered && cached != null,
+  )
 
   async function refresh() {
     const result = await api.v1.listPlaylists()
@@ -84,11 +111,50 @@ export default function PlaylistsIndexPage() {
     }
     setError(null)
     setPlaylists(result.data)
+    writePlaylistsSnapshot(result.data)
   }
 
   useEffect(() => {
     void refresh()
   }, [])
+
+  useEffect(() => {
+    if (alreadyEntered) {
+      setHeroIn(true)
+      return
+    }
+    const timer = window.setTimeout(() => setHeroIn(true), 50)
+    return () => window.clearTimeout(timer)
+  }, [alreadyEntered])
+
+  const ready = playlists !== null
+
+  useEffect(() => {
+    if (!ready) return
+
+    if (alreadyEntered) {
+      setLibraryMounted(true)
+      setLibraryIn(true)
+      return
+    }
+
+    let frame = 0
+    const timer = window.setTimeout(() => {
+      setLibraryMounted(true)
+      setLibraryIn(false)
+      frame = window.requestAnimationFrame(() => {
+        frame = window.requestAnimationFrame(() => {
+          setLibraryIn(true)
+          markPlaylistsEntered()
+        })
+      })
+    }, 400)
+
+    return () => {
+      window.clearTimeout(timer)
+      window.cancelAnimationFrame(frame)
+    }
+  }, [ready, alreadyEntered])
 
   async function startPlaylistChat(message: string) {
     setAsking(true)
@@ -115,6 +181,7 @@ export default function PlaylistsIndexPage() {
     const { data, error: apiError } = await api.v1.createPlaylist({
       body: {
         title: clean,
+        color: createColor,
         description: description.trim() || null,
       },
     })
@@ -126,6 +193,7 @@ export default function PlaylistsIndexPage() {
     setCreateOpen(false)
     setTitle("")
     setDescription("")
+    setCreateColor("slate")
     void navigate(`/playlists/${data.id}`, {
       state: { seed: data },
     })
@@ -151,83 +219,85 @@ export default function PlaylistsIndexPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-12 pb-8">
-      <section
-        className={cn(
-          "relative isolate flex flex-col items-center gap-6 pt-6 text-center sm:pt-10",
-          !hasPlaylists && "min-h-[52vh] justify-center",
-        )}
-      >
-        <div
-          className="greeting-glow pointer-events-none absolute inset-x-[-20%] top-[28%] bottom-[-20%] -z-10 opacity-80"
-          aria-hidden
+      <Reveal visible={heroIn}>
+        <section
+          className={cn(
+            "relative isolate flex flex-col items-center gap-6 pt-6 text-center sm:pt-10",
+            !hasPlaylists && "min-h-[52vh] justify-center",
+          )}
         >
-          <span className="greeting-glow-blob greeting-glow-blob--warm" />
-          <span className="greeting-glow-blob greeting-glow-blob--rose" />
-          <span className="greeting-glow-blob greeting-glow-blob--cool" />
-        </div>
+          <div
+            className="greeting-glow pointer-events-none absolute inset-x-[-20%] top-[28%] bottom-[-20%] -z-10 opacity-80"
+            aria-hidden
+          >
+            <span className="greeting-glow-blob greeting-glow-blob--warm" />
+            <span className="greeting-glow-blob greeting-glow-blob--rose" />
+            <span className="greeting-glow-blob greeting-glow-blob--cool" />
+          </div>
 
-        <div className="relative flex max-w-lg flex-col items-center gap-3">
-          <h1 className="text-3xl font-medium tracking-tight sm:text-4xl">
-            Describe a vibe.
-          </h1>
-          <p className="text-muted-foreground text-sm leading-relaxed">
-            Chat searches your catalog and builds a private list.
-          </p>
-        </div>
+          <div className="relative flex max-w-lg flex-col items-center gap-3">
+            <h1 className="text-3xl font-medium tracking-tight sm:text-4xl">
+              Describe a vibe.
+            </h1>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              Chat searches your catalog and builds a private list.
+            </p>
+          </div>
 
-        <div className="relative w-full max-w-xl">
-          <ChatPrompter
-            className="w-full bg-background/85 backdrop-blur-sm"
-            placeholder="Soft electronic for late focus…"
+          <div className="relative w-full max-w-xl">
+            <ChatPrompter
+              className="w-full bg-background/85 backdrop-blur-sm"
+              placeholder="Soft electronic for late focus…"
+              disabled={asking}
+              autoFocus={!hasPlaylists}
+              value={prompt}
+              onValueChange={setPrompt}
+              onSubmit={(message) => startPlaylistChat(message)}
+            />
+          </div>
+
+          <div className="relative grid w-full max-w-xl grid-cols-1 gap-3 sm:grid-cols-2">
+            {PLAYLIST_IDEAS.map((idea) => {
+              const active = prompt === idea.prompt
+              return (
+                <button
+                  key={idea.label}
+                  type="button"
+                  disabled={asking}
+                  onClick={() => setPrompt(idea.prompt)}
+                  className={cn(
+                    "flex cursor-pointer flex-col gap-1 rounded-xl border bg-card px-4 py-3 text-left transition-colors",
+                    "hover:bg-muted/60",
+                    "disabled:cursor-not-allowed disabled:opacity-50",
+                    active && "border-foreground/25 bg-muted/50",
+                  )}
+                >
+                  <span className="block text-sm font-medium tracking-tight">
+                    {idea.label}
+                  </span>
+                  <span className="text-muted-foreground block text-xs">
+                    {idea.hint}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+
+          <button
+            type="button"
             disabled={asking}
-            autoFocus={!hasPlaylists}
-            value={prompt}
-            onValueChange={setPrompt}
-            onSubmit={(message) => startPlaylistChat(message)}
-          />
-        </div>
+            onClick={() => setCreateOpen(true)}
+            className="text-muted-foreground hover:text-foreground relative inline-flex items-center gap-1.5 text-xs transition-colors disabled:opacity-50"
+          >
+            <Plus className="size-3.5" />
+            Or start a blank playlist
+          </button>
 
-        <div className="relative grid w-full max-w-xl grid-cols-1 gap-2 sm:grid-cols-2">
-          {PLAYLIST_IDEAS.map((idea) => {
-            const active = prompt === idea.prompt
-            return (
-              <button
-                key={idea.label}
-                type="button"
-                disabled={asking}
-                onClick={() => setPrompt(idea.prompt)}
-                className={cn(
-                  "rounded-xl border px-4 py-3 text-left transition-[background-color,border-color,transform] duration-200",
-                  "hover:bg-background/80 hover:border-foreground/20 active:scale-[0.99]",
-                  "bg-background/55 backdrop-blur-sm disabled:opacity-50",
-                  active && "border-foreground/30 bg-background shadow-sm",
-                )}
-              >
-                <span className="block text-sm font-medium tracking-tight">
-                  {idea.label}
-                </span>
-                <span className="text-muted-foreground mt-0.5 block text-xs">
-                  {idea.hint}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-
-        <button
-          type="button"
-          disabled={asking}
-          onClick={() => setCreateOpen(true)}
-          className="text-muted-foreground hover:text-foreground relative inline-flex items-center gap-1.5 text-xs transition-colors disabled:opacity-50"
-        >
-          <Plus className="size-3.5" />
-          Or start a blank playlist
-        </button>
-
-        {error ? (
-          <p className="text-destructive relative text-sm">{error}</p>
-        ) : null}
-      </section>
+          {error ? (
+            <p className="text-destructive relative text-sm">{error}</p>
+          ) : null}
+        </section>
+      </Reveal>
 
       <section className="flex flex-col gap-4">
         <div className="flex items-end justify-between gap-3">
@@ -240,52 +310,84 @@ export default function PlaylistsIndexPage() {
           ) : null}
         </div>
 
-        {playlists === null ? (
-          <p className="text-muted-foreground text-sm">Loading…</p>
-        ) : playlists.length === 0 ? (
-          <div className="text-muted-foreground flex flex-col items-center gap-3 rounded-2xl border border-dashed px-6 py-10 text-center">
-            <Playlist className="size-7 opacity-40" weight="duotone" />
-            <div className="flex max-w-sm flex-col gap-1">
-              <p className="text-foreground text-sm font-medium">
-                No playlists yet
-              </p>
-              <p className="text-xs leading-relaxed">
-                Pick an idea above, or describe something of your own.
-              </p>
+        {!libraryMounted ? (
+          <PlaylistCardsSkeleton />
+        ) : playlists!.length === 0 ? (
+          <Reveal visible={libraryIn}>
+            <div className="text-muted-foreground flex flex-col items-center gap-3 rounded-2xl border border-dashed px-6 py-10 text-center">
+              <Playlist className="size-7 opacity-40" weight="duotone" />
+              <div className="flex max-w-sm flex-col gap-1">
+                <p className="text-foreground text-sm font-medium">
+                  No playlists yet
+                </p>
+                <p className="text-xs leading-relaxed">
+                  Pick an idea above, or describe something of your own.
+                </p>
+              </div>
             </div>
-          </div>
+          </Reveal>
         ) : (
-          <ul className="divide-border flex flex-col divide-y overflow-hidden rounded-2xl border">
-            {playlists.map((playlist) => (
-              <li key={playlist.id} className="bg-background/70">
-                <div className="group hover:bg-muted/50 flex items-center gap-3 px-4 py-3 transition-colors">
-                  <Link
-                    to={`/playlists/${playlist.id}`}
-                    className="min-w-0 flex-1 text-left"
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {playlists!.map((playlist, index) => {
+              const palette = playlistCardPalette(
+                playlistThemeColors(playlist.theme_colors, playlist.cover_colors),
+              )
+              return (
+                <li key={playlist.id}>
+                  <Reveal
+                    visible={libraryIn}
+                    delayClass={
+                      index < 4
+                        ? CARD_DELAYS[index]
+                        : index < 8
+                          ? "delay-300"
+                          : "delay-400"
+                    }
                   >
-                    <span className="block truncate font-medium tracking-tight">
-                      {playlist.title}
-                    </span>
-                    <span className="text-muted-foreground mt-0.5 block truncate text-xs">
-                      {playlist.track_count}{" "}
-                      {playlist.track_count === 1 ? "track" : "tracks"}
-                      {" · "}
-                      Updated {formatUpdated(playlist.updated_at)}
-                    </span>
-                  </Link>
-                  <Button
-                    type="button"
-                    size="icon-sm"
-                    variant="ghost"
-                    className="text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-                    aria-label={`Delete ${playlist.title}`}
-                    onClick={() => setDeleteTarget(playlist)}
-                  >
-                    <Trash className="size-4" />
-                  </Button>
-                </div>
-              </li>
-            ))}
+                    <div
+                      className="group relative flex min-h-[8.5rem] overflow-hidden rounded-2xl transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                      style={palette.style}
+                    >
+                      <div
+                        aria-hidden
+                        className="pointer-events-none absolute inset-0 opacity-40"
+                        style={{
+                          backgroundImage: `radial-gradient(ellipse 80% 70% at 100% 0%, ${palette.colors[1]}aa 0%, transparent 55%), radial-gradient(ellipse 70% 60% at 0% 100%, ${palette.colors[2]}99 0%, transparent 50%)`,
+                        }}
+                      />
+                      <Link
+                        to={`/playlists/${playlist.id}`}
+                        className="relative z-[1] flex min-w-0 flex-1 flex-col justify-between gap-6 p-4 pr-12 text-left"
+                      >
+                        <span className="line-clamp-2 text-base font-medium tracking-tight">
+                          {playlist.title}
+                        </span>
+                        <span
+                          className="truncate text-xs"
+                          style={{ color: "var(--playlist-fg-muted)" }}
+                        >
+                          {playlist.track_count}{" "}
+                          {playlist.track_count === 1 ? "track" : "tracks"}
+                          {" · "}
+                          Updated {formatUpdated(playlist.updated_at)}
+                        </span>
+                      </Link>
+                      <Button
+                        type="button"
+                        size="icon-sm"
+                        variant="ghost"
+                        className="absolute top-3 right-3 z-[2] opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 [background-color:var(--playlist-btn)] hover:[background-color:var(--playlist-btn-hover)]"
+                        style={{ color: "inherit" }}
+                        aria-label={`Delete ${playlist.title}`}
+                        onClick={() => setDeleteTarget(playlist)}
+                      >
+                        <Trash className="size-4" />
+                      </Button>
+                    </div>
+                  </Reveal>
+                </li>
+              )
+            })}
           </ul>
         )}
       </section>
@@ -297,6 +399,7 @@ export default function PlaylistsIndexPage() {
           if (!open) {
             setTitle("")
             setDescription("")
+            setCreateColor("slate")
           }
         }}
       >
@@ -304,7 +407,7 @@ export default function PlaylistsIndexPage() {
           <DialogHeader>
             <DialogTitle>Blank playlist</DialogTitle>
             <DialogDescription>
-              Give it a name. You can add tracks on the next screen.
+              Give it a name and a mood color. You can add tracks next.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3">
@@ -334,6 +437,7 @@ export default function PlaylistsIndexPage() {
                 rows={3}
               />
             </div>
+            <PlaylistColorPicker value={createColor} onChange={setCreateColor} />
           </div>
           <DialogFooter>
             <DialogClose render={<Button variant="outline" />} disabled={creating}>

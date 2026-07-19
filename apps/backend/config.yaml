@@ -1,0 +1,28 @@
+# Non-secret backend defaults (committed).
+# Personal tweaks: copy config.local.example.yaml → config.local.yaml (gitignored).
+# Deploy/secrets: env (.env / Compose).
+
+# Auth session
+jwt_issuer: ox1audio
+session_cookie: session
+session_max_age_seconds: 1209600  # 14 days
+
+# Catalog ingest limits (~12 GB / 2000 tracks)
+max_upload_bytes: 104857600
+max_zip_bytes: 12884901888
+max_zip_uncompressed_bytes: 12884901888
+max_zip_files: 2000
+worker_poll_seconds: 2.0
+
+# ML worker / object storage timeouts
+ml_worker_timeout_seconds: 600.0
+ml_search_timeout_seconds: 300.0
+presign_expires_seconds: 3600
+
+# Ollama / chat (base URL stays in env)
+ollama_model: lfm2.5:8b
+ollama_title_model: LiquidAI/lfm2.5-1.2b-instruct
+ollama_timeout_seconds: 120.0
+ollama_title_timeout_seconds: 30.0
+chat_max_tool_rounds: 6
+chat_max_history_messages: 20

@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react"
 import { Queue } from "@phosphor-icons/react"
+import { toast } from "sonner"
 
 import { api, type JobOut } from "~/lib/api"
+import { JobCardsSkeleton } from "~/components/loading"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,12 +23,16 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card"
+import { Input } from "~/components/ui/input"
+import { Label } from "~/components/ui/label"
 import {
   Progress,
   ProgressLabel,
   ProgressValue,
 } from "~/components/ui/progress"
+import { ALLOWED_AUDIO_EXTENSIONS } from "~/client/constants.gen"
 
+const ACCEPT_AUDIO = ALLOWED_AUDIO_EXTENSIONS.join(",")
 const ACTIVE = new Set(["queued", "importing", "indexing"])
 
 /** Sliding window of ready counts for ETA (successful index rate only). */
@@ -112,6 +118,7 @@ function progressLabel(job: JobOut): string {
 export default function JobsPage() {
   const [jobs, setJobs] = useState<JobOut[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
   const [cancelling, setCancelling] = useState<string | null>(null)
   const [retrying, setRetrying] = useState<string | null>(null)
   const [confirmJob, setConfirmJob] = useState<JobOut | null>(null)
@@ -121,6 +128,7 @@ export default function JobsPage() {
     const { data, error: apiError } = await api.v1.listJobs()
     if (apiError || !data) {
       setError("Could not load jobs")
+      toast.error("Could not load jobs")
       return
     }
     setError(null)
@@ -148,8 +156,10 @@ export default function JobsPage() {
     setConfirmJob(null)
     if (apiError) {
       setError("Could not cancel job")
+      toast.error("Could not cancel job")
       return
     }
+    toast.success("Job cancelled")
     await refresh()
   }
 
@@ -160,8 +170,10 @@ export default function JobsPage() {
     setRetrying(null)
     if (apiError) {
       setError("Could not retry failed tracks")
+      toast.error("Could not retry failed tracks")
       return
     }
+    toast.success("Retry started")
     await refresh()
   }
 
@@ -183,14 +195,97 @@ export default function JobsPage() {
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-medium tracking-tight">Jobs</h1>
         <p className="text-muted-foreground text-sm leading-relaxed">
-          Indexing progress for catalog imports. Active jobs refresh every 2 seconds.
+          Upload audio or ZIP archives here, then follow indexing progress.
+          Active jobs refresh every 2 seconds.
         </p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <form
+          className="flex flex-col gap-3"
+          onSubmit={async (event) => {
+            event.preventDefault()
+            const form = new FormData(event.currentTarget)
+            const file = form.get("file")
+            if (!(file instanceof File) || file.size === 0) {
+              toast.error("Choose a file first")
+              return
+            }
+            setUploading(true)
+            const { error: apiError } = await api.v1.uploadTrack({
+              body: { file },
+            })
+            setUploading(false)
+            if (apiError) {
+              toast.error("Upload failed")
+              return
+            }
+            event.currentTarget.reset()
+            toast.success("Upload started")
+            await refresh()
+          }}
+        >
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="track-file">Audio file</Label>
+            <Input
+              id="track-file"
+              name="file"
+              type="file"
+              accept={ACCEPT_AUDIO}
+              disabled={uploading}
+              required
+            />
+          </div>
+          <Button type="submit" disabled={uploading}>
+            {uploading ? "Uploading…" : "Upload file"}
+          </Button>
+        </form>
+
+        <form
+          className="flex flex-col gap-3"
+          onSubmit={async (event) => {
+            event.preventDefault()
+            const form = new FormData(event.currentTarget)
+            const file = form.get("file")
+            if (!(file instanceof File) || file.size === 0) {
+              toast.error("Choose a ZIP first")
+              return
+            }
+            setUploading(true)
+            const { error: apiError } = await api.v1.uploadZip({
+              body: { file },
+            })
+            setUploading(false)
+            if (apiError) {
+              toast.error("ZIP upload failed")
+              return
+            }
+            event.currentTarget.reset()
+            toast.success("ZIP upload started")
+            await refresh()
+          }}
+        >
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="zip-file">ZIP archive</Label>
+            <Input
+              id="zip-file"
+              name="file"
+              type="file"
+              accept=".zip,application/zip"
+              disabled={uploading}
+              required
+            />
+          </div>
+          <Button type="submit" disabled={uploading}>
+            {uploading ? "Uploading…" : "Upload ZIP"}
+          </Button>
+        </form>
       </div>
 
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
 
       {jobs === null ? (
-        <p className="text-muted-foreground text-sm">Loading…</p>
+        <JobCardsSkeleton />
       ) : jobs.length === 0 ? (
         <Card>
           <CardHeader>
@@ -199,7 +294,7 @@ export default function JobsPage() {
               No jobs yet
             </CardTitle>
             <CardDescription>
-              Upload a ZIP from the Catalog page to start indexing.
+              Upload a file or ZIP above to start indexing.
             </CardDescription>
           </CardHeader>
         </Card>

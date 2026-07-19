@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from tunelink_backend.tools import ensure_registered, list_specs
-from tunelink_backend.tools.langchain import build_langchain_tools
-from tunelink_backend.tools.types import ToolContext
+from ox1audio_backend.tools import ensure_registered, list_specs
+from ox1audio_backend.tools.langchain import build_langchain_tools
+from ox1audio_backend.tools.types import ToolContext
 
 
 EXPECTED_TOOLS = {
@@ -15,6 +15,8 @@ EXPECTED_TOOLS = {
     "get_track",
     "list_tracks",
     "library_stats",
+    "search_artists",
+    "get_artist",
     "list_playlists",
     "get_playlist",
     "create_playlist",

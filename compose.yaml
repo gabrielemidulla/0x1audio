@@ -13,16 +13,16 @@ services:
     image: postgres:16
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-tunelink}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tunelink}
-      POSTGRES_DB: ${POSTGRES_DB:-tunelink}
+      POSTGRES_USER: ${POSTGRES_USER:-ox1audio}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ox1audio}
+      POSTGRES_DB: ${POSTGRES_DB:-ox1audio}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER:-tunelink} -d ${POSTGRES_DB:-tunelink}",
+          "pg_isready -U ${POSTGRES_USER:-ox1audio} -d ${POSTGRES_DB:-ox1audio}",
         ]
       interval: 10s
       timeout: 5s
@@ -36,7 +36,7 @@ services:
         soft: 65536
         hard: 65536
     environment:
-      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:-tunelink-qdrant-dev-key}
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:-ox1audio-qdrant-dev-key}
     volumes:
       - qdrant_data:/qdrant/storage
 
@@ -45,8 +45,8 @@ services:
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-tunelink}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-tunelink-dev-secret}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-ox1audio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-ox1audio-dev-secret}
     volumes:
       - minio_data:/data
 
@@ -57,14 +57,14 @@ services:
         condition: service_started
     entrypoint: >
       /bin/sh -c "
-      until mc alias set local http://minio:9000 $${MINIO_ROOT_USER:-tunelink} $${MINIO_ROOT_PASSWORD:-tunelink-dev-secret};
+      until mc alias set local http://minio:9000 $${MINIO_ROOT_USER:-ox1audio} $${MINIO_ROOT_PASSWORD:-ox1audio-dev-secret};
       do sleep 1; done;
       mc mb --ignore-existing local/$${MINIO_BUCKET:-catalog-audio};
       exit 0;
       "
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-tunelink}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-tunelink-dev-secret}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-ox1audio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-ox1audio-dev-secret}
       MINIO_BUCKET: ${MINIO_BUCKET:-catalog-audio}
     restart: "no"
 
@@ -95,11 +95,17 @@ services:
         set -e
         echo "Pulling lfm2.5:8b…"
         ollama pull lfm2.5:8b
-        echo "Model ready"
+        echo "Pulling LiquidAI/lfm2.5-1.2b-instruct (chat titles)…"
+        ollama pull LiquidAI/lfm2.5-1.2b-instruct
+        echo "Models ready"
     restart: "no"
 
 volumes:
   postgres_data:
+    name: ox1audio_postgres_data
   qdrant_data:
+    name: ox1audio_qdrant_data
   minio_data:
+    name: ox1audio_minio_data
   ollama_data:
+    name: ox1audio_ollama_data

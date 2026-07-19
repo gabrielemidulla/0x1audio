@@ -33,6 +33,72 @@ export type AppendMessageOut = {
 };
 
 /**
+ * ArtistListOut
+ */
+export type ArtistListOut = {
+    /**
+     * Items
+     */
+    items: Array<ArtistOut>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Limit
+     */
+    limit: number;
+    /**
+     * Offset
+     */
+    offset: number;
+};
+
+/**
+ * ArtistOut
+ */
+export type ArtistOut = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Track Count
+     */
+    track_count?: number;
+    /**
+     * Has Image
+     */
+    has_image?: boolean;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * ArtistRefOut
+ */
+export type ArtistRefOut = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
  * AuthCredentials
  */
 export type AuthCredentials = {
@@ -67,6 +133,26 @@ export type BodySearchAudio = {
 };
 
 /**
+ * Body_updateMyAvatar
+ */
+export type BodyUpdateMyAvatar = {
+    /**
+     * File
+     */
+    file: Blob | File;
+};
+
+/**
+ * Body_updateTrackCover
+ */
+export type BodyUpdateTrackCover = {
+    /**
+     * File
+     */
+    file: Blob | File;
+};
+
+/**
  * Body_uploadTrack
  */
 export type BodyUploadTrack = {
@@ -84,6 +170,34 @@ export type BodyUploadZip = {
      * File
      */
     file: Blob | File;
+};
+
+/**
+ * ChangeEmailBody
+ */
+export type ChangeEmailBody = {
+    /**
+     * Current Password
+     */
+    current_password: string;
+    /**
+     * New Email
+     */
+    new_email: string;
+};
+
+/**
+ * ChangePasswordBody
+ */
+export type ChangePasswordBody = {
+    /**
+     * Current Password
+     */
+    current_password?: string | null;
+    /**
+     * New Password
+     */
+    new_password: string;
 };
 
 /**
@@ -177,6 +291,16 @@ export type ChatSummaryOut = {
 };
 
 /**
+ * CreateArtistBody
+ */
+export type CreateArtistBody = {
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
  * CreateChatBody
  */
 export type CreateChatBody = {
@@ -194,6 +318,7 @@ export type CreatePlaylistBody = {
      * Title
      */
     title: string;
+    color: PlaylistColor;
     /**
      * Description
      */
@@ -202,6 +327,16 @@ export type CreatePlaylistBody = {
      * Track Ids
      */
     track_ids?: Array<string> | null;
+};
+
+/**
+ * DeleteTracksBody
+ */
+export type DeleteTracksBody = {
+    /**
+     * Track Ids
+     */
+    track_ids: Array<string>;
 };
 
 /**
@@ -374,6 +509,14 @@ export type PlaylistChatOut = {
      */
     description: string | null;
     /**
+     * Color
+     */
+    color?: string | null;
+    /**
+     * Theme Colors
+     */
+    theme_colors?: Array<string>;
+    /**
      * Track Count
      */
     track_count: number;
@@ -382,6 +525,11 @@ export type PlaylistChatOut = {
      */
     preview_tracks?: Array<TrackOut>;
 };
+
+/**
+ * PlaylistColor
+ */
+export type PlaylistColor = 'light_blue' | 'washed_blue' | 'dark_blue' | 'teal' | 'mint' | 'green' | 'forest' | 'yellow' | 'amber' | 'orange' | 'coral' | 'light_red' | 'rose' | 'dark_red' | 'pink' | 'magenta' | 'lavender' | 'purple' | 'violet' | 'indigo' | 'slate' | 'charcoal';
 
 /**
  * PlaylistDetailOut
@@ -399,6 +547,11 @@ export type PlaylistDetailOut = {
      * Description
      */
     description: string | null;
+    color?: PlaylistColor | null;
+    /**
+     * Theme Colors
+     */
+    theme_colors?: Array<string>;
     /**
      * Created At
      */
@@ -429,10 +582,19 @@ export type PlaylistSummaryOut = {
      * Description
      */
     description: string | null;
+    color?: PlaylistColor | null;
+    /**
+     * Theme Colors
+     */
+    theme_colors?: Array<string>;
     /**
      * Track Count
      */
     track_count: number;
+    /**
+     * Cover Colors
+     */
+    cover_colors?: Array<string>;
     /**
      * Created At
      */
@@ -455,6 +617,24 @@ export type PlaylistTracksBody = {
      * Position
      */
     position?: number | null;
+};
+
+/**
+ * RegisterBody
+ */
+export type RegisterBody = {
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Password
+     */
+    password: string;
+    /**
+     * Display Name
+     */
+    display_name?: string | null;
 };
 
 /**
@@ -567,6 +747,28 @@ export type ToolTraceOut = {
 };
 
 /**
+ * TrackListOut
+ */
+export type TrackListOut = {
+    /**
+     * Items
+     */
+    items: Array<TrackOut>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Limit
+     */
+    limit: number;
+    /**
+     * Offset
+     */
+    offset: number;
+};
+
+/**
  * TrackOut
  */
 export type TrackOut = {
@@ -619,6 +821,14 @@ export type TrackOut = {
      * Duration S
      */
     duration_s?: number | null;
+    /**
+     * Is Instrumental
+     */
+    is_instrumental?: boolean | null;
+    /**
+     * Artists
+     */
+    artists?: Array<ArtistRefOut>;
 };
 
 /**
@@ -642,6 +852,31 @@ export type UpdatePlaylistBody = {
      * Clear Description
      */
     clear_description?: boolean;
+    color?: PlaylistColor | null;
+};
+
+/**
+ * UpdateProfileBody
+ */
+export type UpdateProfileBody = {
+    /**
+     * Display Name
+     */
+    display_name: string;
+};
+
+/**
+ * UpdateTrackBody
+ */
+export type UpdateTrackBody = {
+    /**
+     * Title
+     */
+    title?: string | null;
+    /**
+     * Artist Ids
+     */
+    artist_ids?: Array<string> | null;
 };
 
 /**
@@ -657,6 +892,18 @@ export type UserOut = {
      */
     email: string;
     role: UserRole;
+    /**
+     * Display Name
+     */
+    display_name?: string | null;
+    /**
+     * Must Change Password
+     */
+    must_change_password?: boolean;
+    /**
+     * Has Avatar
+     */
+    has_avatar?: boolean;
 };
 
 /**
@@ -723,7 +970,7 @@ export type GetApiV1AuthStatusResponses = {
 export type GetApiV1AuthStatusResponse = GetApiV1AuthStatusResponses[keyof GetApiV1AuthStatusResponses];
 
 export type PostApiV1AuthRegisterData = {
-    body: AuthCredentials;
+    body: RegisterBody;
     path?: never;
     query?: never;
     url: '/api/v1/auth/register';
@@ -828,6 +1075,120 @@ export type GetApiV1AuthMeResponses = {
 };
 
 export type GetApiV1AuthMeResponse = GetApiV1AuthMeResponses[keyof GetApiV1AuthMeResponses];
+
+export type PatchApiV1AuthMeData = {
+    body: UpdateProfileBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/me';
+};
+
+export type PatchApiV1AuthMeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PatchApiV1AuthMeError = PatchApiV1AuthMeErrors[keyof PatchApiV1AuthMeErrors];
+
+export type PatchApiV1AuthMeResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserOut;
+};
+
+export type PatchApiV1AuthMeResponse = PatchApiV1AuthMeResponses[keyof PatchApiV1AuthMeResponses];
+
+export type PostApiV1AuthMePasswordData = {
+    body: ChangePasswordBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/me/password';
+};
+
+export type PostApiV1AuthMePasswordErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PostApiV1AuthMePasswordError = PostApiV1AuthMePasswordErrors[keyof PostApiV1AuthMePasswordErrors];
+
+export type PostApiV1AuthMePasswordResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserOut;
+};
+
+export type PostApiV1AuthMePasswordResponse = PostApiV1AuthMePasswordResponses[keyof PostApiV1AuthMePasswordResponses];
+
+export type PostApiV1AuthMeEmailData = {
+    body: ChangeEmailBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/me/email';
+};
+
+export type PostApiV1AuthMeEmailErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PostApiV1AuthMeEmailError = PostApiV1AuthMeEmailErrors[keyof PostApiV1AuthMeEmailErrors];
+
+export type PostApiV1AuthMeEmailResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserOut;
+};
+
+export type PostApiV1AuthMeEmailResponse = PostApiV1AuthMeEmailResponses[keyof PostApiV1AuthMeEmailResponses];
+
+export type GetApiV1AuthMeAvatarData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/me/avatar';
+};
+
+export type GetApiV1AuthMeAvatarResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type PutApiV1AuthMeAvatarData = {
+    body: BodyUpdateMyAvatar;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/me/avatar';
+};
+
+export type PutApiV1AuthMeAvatarErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PutApiV1AuthMeAvatarError = PutApiV1AuthMeAvatarErrors[keyof PutApiV1AuthMeAvatarErrors];
+
+export type PutApiV1AuthMeAvatarResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserOut;
+};
+
+export type PutApiV1AuthMeAvatarResponse = PutApiV1AuthMeAvatarResponses[keyof PutApiV1AuthMeAvatarResponses];
 
 export type PostApiV1CatalogUploadsData = {
     body: BodyUploadTrack;
@@ -1014,13 +1375,33 @@ export type GetApiV1CatalogTracksData = {
          */
         q?: string | null;
         /**
+         * Artist
+         */
+        artist?: string | null;
+        /**
+         * Artist Id
+         */
+        artist_id?: string | null;
+        /**
          * Status
          */
         status?: TrackStatus | null;
         /**
+         * Sort
+         */
+        sort?: 'imported_at' | 'duration' | 'title' | 'artist';
+        /**
+         * Order
+         */
+        order?: 'asc' | 'desc';
+        /**
          * Limit
          */
-        limit?: number | null;
+        limit?: number;
+        /**
+         * Offset
+         */
+        offset?: number;
     };
     url: '/api/v1/catalog/tracks';
 };
@@ -1036,14 +1417,67 @@ export type GetApiV1CatalogTracksError = GetApiV1CatalogTracksErrors[keyof GetAp
 
 export type GetApiV1CatalogTracksResponses = {
     /**
-     * Response Listtracks
-     *
      * Successful Response
      */
-    200: Array<TrackOut>;
+    200: TrackListOut;
 };
 
 export type GetApiV1CatalogTracksResponse = GetApiV1CatalogTracksResponses[keyof GetApiV1CatalogTracksResponses];
+
+export type PostApiV1CatalogTracksBulkDeleteData = {
+    body: DeleteTracksBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/catalog/tracks/bulk-delete';
+};
+
+export type PostApiV1CatalogTracksBulkDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PostApiV1CatalogTracksBulkDeleteError = PostApiV1CatalogTracksBulkDeleteErrors[keyof PostApiV1CatalogTracksBulkDeleteErrors];
+
+export type PostApiV1CatalogTracksBulkDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type PostApiV1CatalogTracksBulkDeleteResponse = PostApiV1CatalogTracksBulkDeleteResponses[keyof PostApiV1CatalogTracksBulkDeleteResponses];
+
+export type DeleteApiV1CatalogTracksByTrackIdData = {
+    body?: never;
+    path: {
+        /**
+         * Track Id
+         */
+        track_id: string;
+    };
+    query?: never;
+    url: '/api/v1/catalog/tracks/{track_id}';
+};
+
+export type DeleteApiV1CatalogTracksByTrackIdErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteApiV1CatalogTracksByTrackIdError = DeleteApiV1CatalogTracksByTrackIdErrors[keyof DeleteApiV1CatalogTracksByTrackIdErrors];
+
+export type DeleteApiV1CatalogTracksByTrackIdResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteApiV1CatalogTracksByTrackIdResponse = DeleteApiV1CatalogTracksByTrackIdResponses[keyof DeleteApiV1CatalogTracksByTrackIdResponses];
 
 export type GetApiV1CatalogTracksByTrackIdData = {
     body?: never;
@@ -1075,6 +1509,36 @@ export type GetApiV1CatalogTracksByTrackIdResponses = {
 
 export type GetApiV1CatalogTracksByTrackIdResponse = GetApiV1CatalogTracksByTrackIdResponses[keyof GetApiV1CatalogTracksByTrackIdResponses];
 
+export type PatchApiV1CatalogTracksByTrackIdData = {
+    body: UpdateTrackBody;
+    path: {
+        /**
+         * Track Id
+         */
+        track_id: string;
+    };
+    query?: never;
+    url: '/api/v1/catalog/tracks/{track_id}';
+};
+
+export type PatchApiV1CatalogTracksByTrackIdErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PatchApiV1CatalogTracksByTrackIdError = PatchApiV1CatalogTracksByTrackIdErrors[keyof PatchApiV1CatalogTracksByTrackIdErrors];
+
+export type PatchApiV1CatalogTracksByTrackIdResponses = {
+    /**
+     * Successful Response
+     */
+    200: TrackOut;
+};
+
+export type PatchApiV1CatalogTracksByTrackIdResponse = PatchApiV1CatalogTracksByTrackIdResponses[keyof PatchApiV1CatalogTracksByTrackIdResponses];
+
 export type GetApiV1CatalogTracksByTrackIdCoverData = {
     body?: never;
     path: {
@@ -1102,6 +1566,36 @@ export type GetApiV1CatalogTracksByTrackIdCoverResponses = {
      */
     200: unknown;
 };
+
+export type PutApiV1CatalogTracksByTrackIdCoverData = {
+    body: BodyUpdateTrackCover;
+    path: {
+        /**
+         * Track Id
+         */
+        track_id: string;
+    };
+    query?: never;
+    url: '/api/v1/catalog/tracks/{track_id}/cover';
+};
+
+export type PutApiV1CatalogTracksByTrackIdCoverErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PutApiV1CatalogTracksByTrackIdCoverError = PutApiV1CatalogTracksByTrackIdCoverErrors[keyof PutApiV1CatalogTracksByTrackIdCoverErrors];
+
+export type PutApiV1CatalogTracksByTrackIdCoverResponses = {
+    /**
+     * Successful Response
+     */
+    200: TrackOut;
+};
+
+export type PutApiV1CatalogTracksByTrackIdCoverResponse = PutApiV1CatalogTracksByTrackIdCoverResponses[keyof PutApiV1CatalogTracksByTrackIdCoverResponses];
 
 export type GetApiV1CatalogTracksByTrackIdAudioData = {
     body?: never;
@@ -1166,6 +1660,165 @@ export type GetApiV1CatalogTracksByTrackIdWaveformResponses = {
 };
 
 export type GetApiV1CatalogTracksByTrackIdWaveformResponse = GetApiV1CatalogTracksByTrackIdWaveformResponses[keyof GetApiV1CatalogTracksByTrackIdWaveformResponses];
+
+export type GetApiV1CatalogArtistsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Sort
+         */
+        sort?: 'name' | 'track_count' | 'created_at';
+        /**
+         * Order
+         */
+        order?: 'asc' | 'desc';
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Offset
+         */
+        offset?: number;
+    };
+    url: '/api/v1/catalog/artists';
+};
+
+export type GetApiV1CatalogArtistsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetApiV1CatalogArtistsError = GetApiV1CatalogArtistsErrors[keyof GetApiV1CatalogArtistsErrors];
+
+export type GetApiV1CatalogArtistsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ArtistListOut;
+};
+
+export type GetApiV1CatalogArtistsResponse = GetApiV1CatalogArtistsResponses[keyof GetApiV1CatalogArtistsResponses];
+
+export type PostApiV1CatalogArtistsData = {
+    body: CreateArtistBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/catalog/artists';
+};
+
+export type PostApiV1CatalogArtistsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PostApiV1CatalogArtistsError = PostApiV1CatalogArtistsErrors[keyof PostApiV1CatalogArtistsErrors];
+
+export type PostApiV1CatalogArtistsResponses = {
+    /**
+     * Successful Response
+     */
+    201: ArtistOut;
+};
+
+export type PostApiV1CatalogArtistsResponse = PostApiV1CatalogArtistsResponses[keyof PostApiV1CatalogArtistsResponses];
+
+export type DeleteApiV1CatalogArtistsByArtistIdData = {
+    body?: never;
+    path: {
+        /**
+         * Artist Id
+         */
+        artist_id: string;
+    };
+    query?: never;
+    url: '/api/v1/catalog/artists/{artist_id}';
+};
+
+export type DeleteApiV1CatalogArtistsByArtistIdErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteApiV1CatalogArtistsByArtistIdError = DeleteApiV1CatalogArtistsByArtistIdErrors[keyof DeleteApiV1CatalogArtistsByArtistIdErrors];
+
+export type DeleteApiV1CatalogArtistsByArtistIdResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteApiV1CatalogArtistsByArtistIdResponse = DeleteApiV1CatalogArtistsByArtistIdResponses[keyof DeleteApiV1CatalogArtistsByArtistIdResponses];
+
+export type GetApiV1CatalogArtistsByArtistIdData = {
+    body?: never;
+    path: {
+        /**
+         * Artist Id
+         */
+        artist_id: string;
+    };
+    query?: never;
+    url: '/api/v1/catalog/artists/{artist_id}';
+};
+
+export type GetApiV1CatalogArtistsByArtistIdErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetApiV1CatalogArtistsByArtistIdError = GetApiV1CatalogArtistsByArtistIdErrors[keyof GetApiV1CatalogArtistsByArtistIdErrors];
+
+export type GetApiV1CatalogArtistsByArtistIdResponses = {
+    /**
+     * Successful Response
+     */
+    200: ArtistOut;
+};
+
+export type GetApiV1CatalogArtistsByArtistIdResponse = GetApiV1CatalogArtistsByArtistIdResponses[keyof GetApiV1CatalogArtistsByArtistIdResponses];
+
+export type GetApiV1CatalogArtistsByArtistIdImageData = {
+    body?: never;
+    path: {
+        /**
+         * Artist Id
+         */
+        artist_id: string;
+    };
+    query?: never;
+    url: '/api/v1/catalog/artists/{artist_id}/image';
+};
+
+export type GetApiV1CatalogArtistsByArtistIdImageErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetApiV1CatalogArtistsByArtistIdImageError = GetApiV1CatalogArtistsByArtistIdImageErrors[keyof GetApiV1CatalogArtistsByArtistIdImageErrors];
+
+export type GetApiV1CatalogArtistsByArtistIdImageResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
 
 export type PostApiV1SearchTextData = {
     body: SearchTextBody;

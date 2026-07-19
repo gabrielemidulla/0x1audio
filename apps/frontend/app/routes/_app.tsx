@@ -2,7 +2,6 @@ import { useEffect, useState } from "react"
 import { Navigate, Outlet, useLocation } from "react-router"
 
 import { api, type UserOut } from "~/lib/api"
-import { useAudioPlayer } from "~/lib/audio-player"
 import { AppSidebar } from "~/components/app-sidebar"
 import { FloatingTrackPlayer } from "~/components/floating-track-player"
 import { Separator } from "~/components/ui/separator"
@@ -14,13 +13,17 @@ import {
 import { cn } from "~/lib/utils"
 
 export type AppOutletContext = {
-  user: UserOut
+  user: UserOut | null
+  setUser: (user: UserOut) => void
+}
+
+function needsOnboarding(user: UserOut): boolean {
+  return Boolean(user.must_change_password) || !user.display_name?.trim()
 }
 
 export default function AppLayout() {
   const [user, setUser] = useState<UserOut | null | undefined>(undefined)
   const [registrationOpen, setRegistrationOpen] = useState<boolean | null>(null)
-  const player = useAudioPlayer()
   const location = useLocation()
   const isGraph = location.pathname === "/graph"
   const isChat =
@@ -35,22 +38,21 @@ export default function AppLayout() {
     )
   }, [])
 
-  if (user === undefined || registrationOpen === null) {
-    return (
-      <main className="flex min-h-svh items-center justify-center p-6">
-        <p className="text-muted-foreground text-sm">Loading…</p>
-      </main>
-    )
-  }
-
-  if (user === null) {
+  // Auth resolved and not signed in → leave the app shell.
+  if (user === null && registrationOpen !== null) {
     return <Navigate to={registrationOpen ? "/register" : "/login"} replace />
   }
 
+  if (user && needsOnboarding(user)) {
+    return <Navigate to="/onboarding" replace />
+  }
+
+  // Show chrome immediately; skeleton only the bits that need user/data.
   return (
     <SidebarProvider className="h-svh max-h-svh overflow-hidden">
       <AppSidebar
-        user={user}
+        user={user ?? null}
+        onUserChange={setUser}
         onSignOut={async () => {
           await api.v1.logout()
           setUser(null)
@@ -60,23 +62,26 @@ export default function AppLayout() {
         <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
-          <span className="text-sm text-muted-foreground">{user.email}</span>
         </header>
         <div
           className={cn(
             "relative flex min-h-0 flex-1 flex-col",
             isGraph || isChat
               ? "overflow-hidden"
-              : cn(
-                  "gap-6 overflow-x-hidden overflow-y-auto p-6",
-                  player.track && "pb-28",
-                ),
+              : "gap-6 overflow-x-hidden overflow-y-auto p-6",
           )}
         >
-          <Outlet context={{ user } satisfies AppOutletContext} />
+          <Outlet
+            context={
+              {
+                user: user ?? null,
+                setUser,
+              } satisfies AppOutletContext
+            }
+          />
         </div>
-        <FloatingTrackPlayer />
       </SidebarInset>
+      <FloatingTrackPlayer />
     </SidebarProvider>
   )
 }

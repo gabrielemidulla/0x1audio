@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react"
 import { Navigate, useNavigate } from "react-router"
+import { toast } from "sonner"
 
 import { AuthForm } from "~/components/auth-form"
+import { FullPageSpinner } from "~/components/loading"
 import { api } from "~/lib/api"
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const [registrationOpen, setRegistrationOpen] = useState<boolean | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
   useEffect(() => {
@@ -17,11 +18,7 @@ export default function LoginPage() {
   }, [])
 
   if (registrationOpen === null) {
-    return (
-      <main className="flex min-h-svh items-center justify-center p-6">
-        <p className="text-muted-foreground text-sm">Loading…</p>
-      </main>
-    )
+    return <FullPageSpinner />
   }
 
   if (registrationOpen) {
@@ -30,20 +27,18 @@ export default function LoginPage() {
 
   return (
     <AuthForm
-      title="Sign in"
-      description="Email and password for your Tunelink account."
       submitLabel="Sign in"
-      error={error}
+      error={null}
       pending={pending}
       onSubmit={async (email, password) => {
         setPending(true)
-        setError(null)
         const { error: apiError } = await api.v1.login({ body: { email, password } })
         setPending(false)
         if (apiError) {
-          setError("Invalid email or password")
+          toast.error("Invalid email or password")
           return
         }
+        toast.success("Signed in")
         void navigate("/")
       }}
     />

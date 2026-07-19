@@ -3,18 +3,12 @@
 
 from __future__ import annotations
 
-import os
 import sys
 import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-MODELS_DIR = Path(
-    os.getenv(
-        "ESSENTIA_MODELS_DIR",
-        str(ROOT / "data" / "models" / "essentia"),
-    )
-)
+MODELS_DIR = ROOT / "data" / "models" / "essentia"
 
 MODEL_URLS = {
     "discogs-effnet-bs64-1.pb": "https://essentia.upf.edu/models/music-style-classification/discogs-effnet/discogs-effnet-bs64-1.pb",

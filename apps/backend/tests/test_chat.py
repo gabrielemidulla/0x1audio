@@ -7,16 +7,18 @@ from uuid import uuid4
 import pytest
 from langchain_core.messages import AIMessageChunk
 
-from tunelink_backend.config import Settings
-from tunelink_backend.services.chat import (
+from ox1audio_backend.config import Settings
+from ox1audio_backend.services.chat import (
     ChatError,
     ChatMessageIn,
     ChatResult,
     ChatStreamToken,
+    ToolTrace,
+    _sanitize_final_answer,
     run_chat,
     run_chat_stream,
 )
-from tunelink_backend.tools.types import ToolResult
+from ox1audio_backend.tools.types import ToolResult
 
 
 @pytest.fixture
@@ -51,7 +53,7 @@ async def _chunks(*parts: AIMessageChunk) -> AsyncIterator[AIMessageChunk]:
 async def test_run_chat_final_answer_without_tools(settings: Settings, user_id) -> None:
     db = MagicMock()
 
-    with patch("tunelink_backend.services.chat.ChatOllama") as chat_cls:
+    with patch("ox1audio_backend.services.chat.ChatOllama") as chat_cls:
         _bind_astream(
             chat_cls,
             [_chunks(AIMessageChunk(content="Your library looks healthy."))],
@@ -73,7 +75,7 @@ async def test_run_chat_stream_yields_tokens(settings: Settings, user_id) -> Non
     db = MagicMock()
     tokens: list[str] = []
 
-    with patch("tunelink_backend.services.chat.ChatOllama") as chat_cls:
+    with patch("ox1audio_backend.services.chat.ChatOllama") as chat_cls:
         _bind_astream(
             chat_cls,
             [
@@ -115,9 +117,9 @@ async def test_run_chat_tool_then_answer(settings: Settings, user_id) -> None:
     final_chunk = AIMessageChunk(content="You have 12 ready tracks.")
 
     with (
-        patch("tunelink_backend.services.chat.ChatOllama") as chat_cls,
+        patch("ox1audio_backend.services.chat.ChatOllama") as chat_cls,
         patch(
-            "tunelink_backend.services.chat.execute",
+            "ox1audio_backend.services.chat.execute",
             new=AsyncMock(
                 return_value=ToolResult(
                     payload={"total": 12, "by_status": {"ready": 12}},
@@ -159,9 +161,9 @@ async def test_run_chat_round_limit_errors(settings: Settings, user_id) -> None:
     )
 
     with (
-        patch("tunelink_backend.services.chat.ChatOllama") as chat_cls,
+        patch("ox1audio_backend.services.chat.ChatOllama") as chat_cls,
         patch(
-            "tunelink_backend.services.chat.execute",
+            "ox1audio_backend.services.chat.execute",
             new=AsyncMock(return_value=ToolResult(payload={"total": 1})),
         ),
     ):
@@ -199,9 +201,9 @@ async def test_run_chat_round_limit_falls_back_with_playlist(
     playlist_id = "11111111-1111-1111-1111-111111111111"
 
     with (
-        patch("tunelink_backend.services.chat.ChatOllama") as chat_cls,
+        patch("ox1audio_backend.services.chat.ChatOllama") as chat_cls,
         patch(
-            "tunelink_backend.services.chat.execute",
+            "ox1audio_backend.services.chat.execute",
             new=AsyncMock(
                 return_value=ToolResult(
                     payload={"playlist": {"id": playlist_id, "title": "Rain"}},
@@ -227,7 +229,7 @@ async def test_run_chat_round_limit_falls_back_with_playlist(
 async def test_run_chat_ollama_down_is_503(settings: Settings, user_id) -> None:
     db = MagicMock()
 
-    with patch("tunelink_backend.services.chat.ChatOllama") as chat_cls:
+    with patch("ox1audio_backend.services.chat.ChatOllama") as chat_cls:
         bound = MagicMock()
         bound.astream = MagicMock(side_effect=ConnectionError("refused"))
         instance = MagicMock()
@@ -243,3 +245,26 @@ async def test_run_chat_ollama_down_is_503(settings: Settings, user_id) -> None:
             )
 
     assert exc_info.value.status_code == 503
+
+
+def test_sanitize_replaces_playlist_hallucination_after_similar() -> None:
+    traces = [ToolTrace(name="similar_tracks", args={}, ok=True)]
+    cleaned = _sanitize_final_answer(
+        "All retrieved playlists have been updated with the light_blue mood color.",
+        traces=traces,
+        track_ids=["a", "b", "c"],
+        playlist_ids=[],
+    )
+    assert cleaned == "Here are 3 similar tracks."
+
+
+def test_sanitize_keeps_real_playlist_confirmation() -> None:
+    traces = [ToolTrace(name="create_playlist", args={}, ok=True)]
+    text = "Created a playlist with a washed_blue mood color."
+    cleaned = _sanitize_final_answer(
+        text,
+        traces=traces,
+        track_ids=["a"],
+        playlist_ids=["p1"],
+    )
+    assert cleaned == text

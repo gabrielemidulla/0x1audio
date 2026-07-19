@@ -9,6 +9,8 @@ type ChatComposerDockProps = {
   className?: string
   /** Change this when the thread should pin to the latest message. */
   scrollKey?: string | number
+  /** Extra viewport room under the thread so the next assistant reply can fill in. */
+  leaveReplyRoom?: boolean
 }
 
 export function ChatComposerDock({
@@ -16,13 +18,14 @@ export function ChatComposerDock({
   composer,
   className,
   scrollKey,
+  leaveReplyRoom = false,
 }: ChatComposerDockProps) {
   const player = useAudioPlayer()
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
-  }, [scrollKey])
+  }, [scrollKey, leaveReplyRoom])
 
   return (
     <div className={cn("relative flex min-h-0 flex-1 flex-col", className)}>
@@ -33,6 +36,13 @@ export function ChatComposerDock({
         )}
       >
         {children}
+        <div
+          className={cn(
+            "w-full shrink-0 transition-[min-height] duration-300 ease-out",
+            leaveReplyRoom ? "min-h-[min(58svh,32rem)]" : "min-h-8",
+          )}
+          aria-hidden
+        />
         <div ref={bottomRef} className="h-px w-full shrink-0" aria-hidden />
       </div>
 

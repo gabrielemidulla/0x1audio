@@ -1,5 +1,6 @@
 import { CaretDown, Pause, Play, SpeakerHigh, X } from "@phosphor-icons/react"
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -23,30 +24,131 @@ import {
   softenPlayerPalette,
   type CoverPalette,
 } from "~/lib/cover-palette"
-import { api, trackCoverUrl } from "~/lib/api"
+import { api, trackCoverUrl, type TrackOut } from "~/lib/api"
+import { ArtistCredits } from "~/components/artist-credits"
 import { Button } from "~/components/ui/button"
-import { Card, CardContent } from "~/components/ui/card"
 import { TrackWaveform } from "~/components/track-waveform"
 import { cn } from "~/lib/utils"
+
+const PLAYER_MS = 320
+const PLAYER_EASE = "cubic-bezier(0.22, 1, 0.36, 1)"
+
+const ENTER_KEYFRAMES: Keyframe[] = [
+  { transform: "translate3d(0, 115%, 0)", filter: "blur(8px)" },
+  { transform: "translate3d(0, 0, 0)", filter: "blur(0px)" },
+]
+
+const EXIT_KEYFRAMES: Keyframe[] = [
+  { transform: "translate3d(0, 0, 0)", filter: "blur(0px)" },
+  { transform: "translate3d(0, 115%, 0)", filter: "blur(8px)" },
+]
 
 function prefersReducedMotion(): boolean {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches
 }
 
+function clearMotionStyles(el: HTMLElement) {
+  el.style.removeProperty("transform")
+  el.style.removeProperty("filter")
+}
+
+function runEnter(el: HTMLElement) {
+  if (prefersReducedMotion()) {
+    el.style.transform = "translate3d(0, 0, 0)"
+    el.style.filter = "blur(0px)"
+    return
+  }
+  clearMotionStyles(el)
+  el.getAnimations().forEach((anim) => anim.cancel())
+  el.animate(ENTER_KEYFRAMES, {
+    duration: PLAYER_MS,
+    easing: PLAYER_EASE,
+    fill: "forwards",
+  })
+}
+
 export function FloatingTrackPlayer() {
   const player = useAudioPlayer()
   const glossRef = useRef<HTMLDivElement>(null)
+  const shellRef = useRef<HTMLDivElement | null>(null)
+  const activeTrackRef = useRef(player.track)
+  const sessionRef = useRef(false)
   const [mini, setMini] = useState(false)
   const [samples, setSamples] = useState<number[] | null>(null)
   const [waveformDuration, setWaveformDuration] = useState<number | null>(null)
   const [palette, setPalette] = useState<CoverPalette>(() =>
     softenPlayerPalette(paletteFromHex(null)),
   )
+  const [renderTrack, setRenderTrack] = useState<TrackOut | null>(player.track)
 
-  const track = player.track
+  activeTrackRef.current = player.track
+
+  const track = renderTrack
+  const activeId = player.track?.id ?? null
   const duration =
     player.duration || waveformDuration || track?.duration_s || 0
   const progress = duration > 0 ? player.currentTime / duration : 0
+
+  // Start the enter slide when the card DOM node attaches (not via CSS
+  // transition — those skip when the node mounts already "open").
+  const bindShell = useCallback((node: HTMLDivElement | null) => {
+    shellRef.current = node
+    if (!node) return
+    if (!activeTrackRef.current) return
+    if (sessionRef.current) {
+      // Same open session (Strict Mode re-attach): still need motion on the
+      // new node, but only if it isn't already animating/finished.
+      const busy = node
+        .getAnimations()
+        .some(
+          (anim) =>
+            anim.playState === "running" || anim.playState === "finished",
+        )
+      if (busy) return
+    }
+    sessionRef.current = true
+    runEnter(node)
+  }, [])
+
+  useEffect(() => {
+    if (player.track) {
+      setRenderTrack(player.track)
+      // Track swap keeps the same DOM node → bindShell is not re-called →
+      // no re-slide. Fresh open mounts a new node → bindShell runs enter.
+      return
+    }
+
+    const el = shellRef.current
+    if (!el || !sessionRef.current) {
+      sessionRef.current = false
+      setRenderTrack(null)
+      return
+    }
+
+    sessionRef.current = false
+    if (prefersReducedMotion()) {
+      clearMotionStyles(el)
+      setRenderTrack(null)
+      return
+    }
+
+    el.getAnimations().forEach((anim) => anim.cancel())
+    const anim = el.animate(EXIT_KEYFRAMES, {
+      duration: PLAYER_MS,
+      easing: PLAYER_EASE,
+      fill: "forwards",
+    })
+    let finished = false
+    const finish = () => {
+      if (finished) return
+      finished = true
+      clearMotionStyles(el)
+      setRenderTrack(null)
+    }
+    void anim.finished.then(finish).catch(finish)
+    const timer = window.setTimeout(finish, PLAYER_MS + 50)
+    return () => window.clearTimeout(timer)
+  }, [activeId, player.track])
 
   useEffect(() => {
     const gloss = glossRef.current
@@ -69,7 +171,6 @@ export function FloatingTrackPlayer() {
       const spectrum = player.playing
         ? readSpectrumBands()
         : { bass: 0, mid: 0, treble: 0, energy: 0 }
-      // Bass snaps in fast; everything eases out smooth/liquid.
       const blend = (
         prev: number,
         next: number,
@@ -125,10 +226,10 @@ export function FloatingTrackPlayer() {
     setWaveformDuration(null)
     void api.v1
       .getTrackWaveform({ path: { track_id: track.id } })
-      .then(({ data, error }) => {
-        if (cancelled || error || !data) return
-        setSamples(data.samples)
-        setWaveformDuration(data.duration_s)
+      .then((result) => {
+        if (cancelled || result.error || !result.data) return
+        setSamples(result.data.samples)
+        setWaveformDuration(result.data.duration_s)
       })
     return () => {
       cancelled = true
@@ -187,12 +288,13 @@ export function FloatingTrackPlayer() {
   if (!track) return null
 
   return (
-    <Card
-      size="sm"
-      data-mini={mini}
+    <div
+      ref={bindShell}
+      data-open="true"
+      data-mini={mini ? "true" : undefined}
       data-on-dark={palette.onDark ? "true" : "false"}
       className={cn(
-        "app-floating-player fixed bottom-3 left-4 right-4 z-50 w-auto overflow-hidden border-0 bg-transparent py-0 shadow-2xl ring-0",
+        "app-floating-player fixed bottom-3 left-4 right-4 z-50 w-auto overflow-hidden rounded-xl border-0 bg-transparent py-0 shadow-2xl ring-0",
       )}
       style={shellStyle}
     >
@@ -208,11 +310,13 @@ export function FloatingTrackPlayer() {
         <span className="player-gloss-sheen" />
       </div>
 
-      <CardContent className="relative z-10 flex flex-col gap-3 px-2.5 py-1.5 sm:px-3 sm:py-2 lg:flex-row lg:items-center">
+      <div className="relative z-10 flex flex-col gap-3 px-2.5 py-1.5 sm:px-3 sm:py-2 lg:flex-row lg:items-center">
         <div className="flex min-w-0 items-center gap-3 lg:w-80">
           <div
             className="size-11 shrink-0 overflow-hidden rounded-xl sm:size-12"
-            style={{ backgroundColor: track.cover_color || palette.colors[0] }}
+            style={{
+              backgroundColor: track.cover_color || palette.colors[0],
+            }}
           >
             {track.has_cover ? (
               <img
@@ -228,7 +332,7 @@ export function FloatingTrackPlayer() {
               className="truncate text-xs"
               style={{ color: "var(--player-fg-muted)" }}
             >
-              {track.artist || "Unknown artist"}
+              <ArtistCredits track={track} className="text-xs text-inherit" />
             </div>
           </div>
         </div>
@@ -243,7 +347,8 @@ export function FloatingTrackPlayer() {
             type="button"
             size="icon"
             className={cn(
-              "size-9 shrink-0 rounded-full border-0 sm:size-10",
+              "size-9 shrink-0 rounded-full border-0 shadow-none after:hidden sm:size-10",
+              "hover:shadow-none focus-visible:shadow-none active:shadow-none",
               palette.onDark
                 ? "bg-white/20 text-white hover:bg-white/30"
                 : "bg-black/15 text-slate-950 hover:bg-black/25",
@@ -253,7 +358,11 @@ export function FloatingTrackPlayer() {
               void toggleTrack(track)
             }}
           >
-            {player.playing ? <Pause weight="fill" /> : <Play weight="fill" />}
+            {player.playing ? (
+              <Pause weight="fill" />
+            ) : (
+              <Play weight="fill" />
+            )}
           </Button>
 
           {!mini ? (
@@ -352,7 +461,7 @@ export function FloatingTrackPlayer() {
             <X className="size-4" />
           </Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

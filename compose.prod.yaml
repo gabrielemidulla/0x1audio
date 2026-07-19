@@ -2,21 +2,23 @@
 # ml-worker uses the CUDA image + NVIDIA GPU.
 #
 #   docker compose -f compose.yaml -f compose.prod.yaml up -d --build
+#
+# Required secrets (no weak defaults): JWT_SECRET, MINIO_ROOT_USER,
+# MINIO_ROOT_PASSWORD, QDRANT_API_KEY.
 
 x-backend-env: &backend-env
-  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-tunelink}:${POSTGRES_PASSWORD:-tunelink}@postgres:5432/${POSTGRES_DB:-tunelink}
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-ox1audio}:${POSTGRES_PASSWORD:-ox1audio}@postgres:5432/${POSTGRES_DB:-ox1audio}
   JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
-  JWT_ISSUER: ${JWT_ISSUER:-tunelink}
   CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
   MINIO_ENDPOINT: minio:9000
-  MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-tunelink}
-  MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-tunelink-dev-secret}
+  MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
+  MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
   MINIO_BUCKET: ${MINIO_BUCKET:-catalog-audio}
   MINIO_SECURE: "false"
   ML_WORKER_TARGET: ml-worker:50051
   OLLAMA_BASE_URL: http://ollama:11434
-  OLLAMA_MODEL: ${OLLAMA_MODEL:-lfm2.5:8b}
-  OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-120}
+  QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
+  QDRANT_API_KEY: ${QDRANT_API_KEY:?QDRANT_API_KEY is required}
 
 services:
   postgres:
@@ -24,14 +26,25 @@ services:
       - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
 
   qdrant:
+    environment:
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:?QDRANT_API_KEY is required}
     ports:
       - "127.0.0.1:${QDRANT_PORT:-6333}:6333"
       - "127.0.0.1:${QDRANT_GRPC_PORT:-6334}:6334"
 
   minio:
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
     ports:
       - "127.0.0.1:${MINIO_API_PORT:-9100}:9000"
       - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
+
+  minio-init:
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+      MINIO_BUCKET: ${MINIO_BUCKET:-catalog-audio}
 
   ollama:
     ports:
@@ -59,7 +72,7 @@ services:
       context: ./apps/backend
       dockerfile: Dockerfile
     restart: unless-stopped
-    command: ["python", "-m", "tunelink_backend.worker"]
+    command: ["python", "-m", "ox1audio_backend.worker"]
     environment:
       <<: *backend-env
     depends_on:
@@ -79,12 +92,12 @@ services:
     environment:
       NVIDIA_VISIBLE_DEVICES: all
       NVIDIA_DRIVER_CAPABILITIES: compute,utility
-      CUDA_VISIBLE_DEVICES: ${CUDA_VISIBLE_DEVICES:-0}
       QDRANT_URL: http://qdrant:6333
-      QDRANT_API_KEY: ${QDRANT_API_KEY:-tunelink-qdrant-dev-key}
-      ESSENTIA_MODELS_DIR: /app/data/models/essentia
+      QDRANT_API_KEY: ${QDRANT_API_KEY:?QDRANT_API_KEY is required}
       HF_HOME: /models/huggingface
-      ML_WORKER_HOST: 0.0.0.0
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HOST: 0.0.0.0
     ports:
       - "127.0.0.1:${ML_WORKER_PORT:-50051}:50051"
     volumes:

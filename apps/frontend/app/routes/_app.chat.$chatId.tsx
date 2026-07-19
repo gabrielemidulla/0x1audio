@@ -1,5 +1,5 @@
 import { startTransition, useEffect, useMemo, useRef, useState } from "react"
-import { Link, useLocation, useNavigate, useParams } from "react-router"
+import { Link, useLocation, useNavigate, useOutletContext, useParams } from "react-router"
 
 import {
   activityFromStatus,
@@ -8,8 +8,10 @@ import {
 import { ChatComposerDock } from "~/components/chat-composer-dock"
 import { ChatPrompter } from "~/components/chat-prompter"
 import { ChatThread, type ThreadMessage } from "~/components/chat-thread"
+import { ChatThreadSkeleton } from "~/components/loading"
 import { streamChatMessage, streamChatReply } from "~/lib/chat-stream"
 import { api, type ChatDetailOut, type PlaylistChatOut, type TrackOut } from "~/lib/api"
+import type { ChatOutletContext } from "~/routes/_app.chat"
 
 type ChatLocationState = {
   seed?: ChatDetailOut
@@ -30,6 +32,7 @@ export default function ChatThreadPage() {
   const { chatId } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
+  const { setChatTitle } = useOutletContext<ChatOutletContext>()
   const locationSeed = (location.state as ChatLocationState | null)?.seed
   const initialSeed =
     locationSeed && chatId && locationSeed.id === chatId ? locationSeed : null
@@ -68,6 +71,8 @@ export default function ChatThreadPage() {
     generatingRef.current = false
     setError(null)
 
+    setChatTitle(seeded?.title ?? "")
+
     if (seeded) {
       setMessages((prev) => {
         if (prev?.some((message) => message.thinking)) return prev
@@ -96,6 +101,9 @@ export default function ChatThreadPage() {
         }
         return
       }
+      if (result.data.title.trim()) {
+        setChatTitle(result.data.title)
+      }
       setMessages((prev) => {
         if (prev?.some((message) => message.thinking)) return prev
         return result.data.messages
@@ -106,6 +114,7 @@ export default function ChatThreadPage() {
 
     return () => {
       cancelled = true
+      setChatTitle("")
     }
     // Only re-load when the chat id changes; seed is applied once above.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -257,6 +266,9 @@ export default function ChatThreadPage() {
       await streamChatReply(
         chatId,
         {
+          onTitle: (nextTitle) => {
+            setChatTitle(nextTitle)
+          },
           onStatus: (phase, name) => {
             const step = activityFromStatus(phase, name)
             if (step) pushActivity(localId, step)
@@ -443,12 +455,13 @@ export default function ChatThreadPage() {
   }
 
   if (messages === null) {
-    return <p className="text-muted-foreground text-sm">Loading…</p>
+    return <ChatThreadSkeleton />
   }
 
   return (
     <ChatComposerDock
       scrollKey={`${messages.length}:${messages.at(-1)?.content.length ?? 0}:${generating}`}
+      leaveReplyRoom={generating}
       composer={
         <ChatPrompter
           generating={generating}

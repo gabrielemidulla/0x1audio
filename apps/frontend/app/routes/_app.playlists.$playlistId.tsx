@@ -19,7 +19,16 @@ import {
   type TrackOut,
 } from "~/lib/api"
 import { playTrack, toggleTrack, useAudioPlayer } from "~/lib/audio-player"
+import { type PlaylistColor } from "~/lib/api"
+import {
+  playlistCardPalette,
+  playlistThemeColors,
+  rankCoverColors,
+} from "~/lib/playlist-palette"
 import { cn } from "~/lib/utils"
+import { ArtistCredits } from "~/components/artist-credits"
+import { PlaylistDetailSkeleton } from "~/components/loading"
+import { PlaylistColorPicker } from "~/components/playlist-color-picker"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,7 +53,8 @@ import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 import { Textarea } from "~/components/ui/textarea"
 
-const FALLBACK_COLOR = "#64748b"
+import { FALLBACK_COVER_COLOR } from "~/client/constants.gen"
+
 
 function isPlaylistDetail(value: unknown): value is PlaylistDetailOut {
   return (
@@ -69,6 +79,7 @@ export default function PlaylistDetailPage() {
   const [editOpen, setEditOpen] = useState(false)
   const [editTitle, setEditTitle] = useState("")
   const [editDescription, setEditDescription] = useState("")
+  const [editColor, setEditColor] = useState<PlaylistColor | null>(null)
 
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
@@ -131,8 +142,15 @@ export default function PlaylistDetailPage() {
     [playlist],
   )
 
-  const firstReady = playlist?.tracks.find((track) => track.status === "ready")
+  const headerPalette = useMemo(() => {
+    const theme = playlist?.theme_colors ?? []
+    const covers = rankCoverColors(
+      playlist?.tracks.map((track) => track.cover_color) ?? [],
+    )
+    return playlistCardPalette(playlistThemeColors(theme, covers))
+  }, [playlist])
 
+  const firstReady = playlist?.tracks.find((track) => track.status === "ready")
   async function persistOrder(nextTracks: TrackOut[]) {
     if (!playlistId) return
     setBusy(true)
@@ -192,6 +210,7 @@ export default function PlaylistDetailPage() {
         title: clean,
         description: editDescription.trim() || null,
         clear_description: !editDescription.trim(),
+        ...(editColor ? { color: editColor } : {}),
       },
     })
     setBusy(false)
@@ -233,7 +252,7 @@ export default function PlaylistDetailPage() {
       setCatalog([])
       return
     }
-    setCatalog(result.data)
+    setCatalog(result.data.items)
   }
 
   async function addSelected() {
@@ -261,7 +280,21 @@ export default function PlaylistDetailPage() {
   }
 
   if (playlist === null && !error) {
-    return <p className="text-muted-foreground text-sm">Loading…</p>
+    return (
+      <div className="flex max-w-4xl flex-col gap-6">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="w-fit"
+          render={<Link to="/playlists" />}
+        >
+          <ArrowLeft className="size-4" />
+          Back to playlists
+        </Button>
+        <PlaylistDetailSkeleton />
+      </div>
+    )
   }
 
   if (playlist === null) {
@@ -296,69 +329,99 @@ export default function PlaylistDetailPage() {
           Back to playlists
         </Button>
 
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-medium tracking-tight">
-              {playlist.title}
-            </h1>
-            {playlist.description ? (
-              <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
-                {playlist.description}
+        <div
+          className="relative w-full overflow-hidden rounded-2xl"
+          style={headerPalette.style}
+        >
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 opacity-40"
+            style={{
+              backgroundImage: `radial-gradient(ellipse 80% 70% at 100% 0%, ${headerPalette.colors[1]}aa 0%, transparent 55%), radial-gradient(ellipse 70% 60% at 0% 100%, ${headerPalette.colors[2]}99 0%, transparent 50%)`,
+            }}
+          />
+          <div className="relative z-[1] flex flex-wrap items-start justify-between gap-4 p-5 sm:p-6">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-2xl font-medium tracking-tight">
+                {playlist.title}
+              </h1>
+              {playlist.description ? (
+                <p
+                  className="mt-1 text-sm leading-relaxed"
+                  style={{ color: "var(--playlist-fg-muted)" }}
+                >
+                  {playlist.description}
+                </p>
+              ) : null}
+              <p
+                className="mt-1 text-xs"
+                style={{ color: "var(--playlist-fg-muted)" }}
+              >
+                {playlist.tracks.length}{" "}
+                {playlist.tracks.length === 1 ? "track" : "tracks"}
               </p>
-            ) : null}
-            <p className="text-muted-foreground mt-1 text-xs">
-              {playlist.tracks.length}{" "}
-              {playlist.tracks.length === 1 ? "track" : "tracks"}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={!firstReady || busy}
-              onClick={() => {
-                if (firstReady) void playTrack(firstReady)
-              }}
-            >
-              <Play className="size-4" weight="fill" />
-              Play
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={busy}
-              onClick={() => {
-                setEditTitle(playlist.title)
-                setEditDescription(playlist.description ?? "")
-                setEditOpen(true)
-              }}
-            >
-              <PencilSimple className="size-4" />
-              Edit
-            </Button>
-            <Button
-              type="button"
-              disabled={busy}
-              onClick={() => {
-                setAddOpen(true)
-                setSelected(new Set())
-                setQuery("")
-                void searchCatalog("")
-              }}
-            >
-              <Plus className="size-4" />
-              Add tracks
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              className="text-destructive"
-              disabled={busy}
-              onClick={() => setDeleteOpen(true)}
-            >
-              <Trash className="size-4" />
-              Delete
-            </Button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!firstReady || busy}
+                className="border-[color:var(--playlist-btn-border)] bg-[color:var(--playlist-btn)] text-inherit hover:bg-[color:var(--playlist-btn-hover)] hover:text-inherit"
+                onClick={() => {
+                  if (firstReady) void playTrack(firstReady)
+                }}
+              >
+                <Play className="size-4" weight="fill" />
+                Play
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busy}
+                className="border-[color:var(--playlist-btn-border)] bg-[color:var(--playlist-btn)] text-inherit hover:bg-[color:var(--playlist-btn-hover)] hover:text-inherit"
+                onClick={() => {
+                  setEditTitle(playlist.title)
+                  setEditDescription(playlist.description ?? "")
+                  setEditColor(
+                    (playlist.color as PlaylistColor | null | undefined) ??
+                      null,
+                  )
+                  setEditOpen(true)
+                }}
+              >
+                <PencilSimple className="size-4" />
+                Edit
+              </Button>
+              <Button
+                type="button"
+                disabled={busy}
+                className="border-transparent bg-[color:var(--playlist-solid)] text-[color:var(--playlist-solid-fg)] hover:bg-[color:var(--playlist-solid)] hover:opacity-90 hover:text-[color:var(--playlist-solid-fg)]"
+                onClick={() => {
+                  setAddOpen(true)
+                  setSelected(new Set())
+                  setQuery("")
+                  void searchCatalog("")
+                }}
+              >
+                <Plus className="size-4" />
+                Add tracks
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busy}
+                className={cn(
+                  "border-[color:var(--playlist-btn-border)] bg-[color:var(--playlist-btn)] hover:bg-[color:var(--playlist-btn-hover)]",
+                  headerPalette.onDark
+                    ? "text-red-200 hover:text-red-100"
+                    : "text-red-700 hover:text-red-800",
+                )}
+                onClick={() => setDeleteOpen(true)}
+              >
+                <Trash className="size-4" />
+                Delete
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -403,7 +466,7 @@ export default function PlaylistDetailPage() {
                       <span
                         className="relative block size-10 overflow-hidden rounded-md bg-muted"
                         style={{
-                          backgroundColor: track.cover_color || FALLBACK_COLOR,
+                          backgroundColor: track.cover_color || FALLBACK_COVER_COLOR,
                         }}
                       >
                         {track.has_cover ? (
@@ -435,7 +498,7 @@ export default function PlaylistDetailPage() {
                         {track.title}
                       </span>
                       <span className="text-muted-foreground block truncate text-sm">
-                        {track.artist || "Unknown artist"}
+                        <ArtistCredits track={track} className="text-sm" />
                       </span>
                     </span>
                   </button>
@@ -484,7 +547,7 @@ export default function PlaylistDetailPage() {
           <DialogHeader>
             <DialogTitle>Edit playlist</DialogTitle>
             <DialogDescription>
-              Update the title or description.
+              Update the title, description, or mood color.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3">
@@ -507,6 +570,11 @@ export default function PlaylistDetailPage() {
                 rows={3}
               />
             </div>
+            <PlaylistColorPicker
+              value={editColor}
+              onChange={setEditColor}
+              optional
+            />
           </div>
           <DialogFooter>
             <DialogClose render={<Button variant="outline" />} disabled={busy}>
@@ -595,9 +663,11 @@ export default function PlaylistDetailPage() {
                               {track.title}
                             </span>
                             <span className="text-muted-foreground block truncate text-xs">
-                              {alreadyIn
-                                ? "Already in playlist"
-                                : track.artist || "Unknown artist"}
+                              {alreadyIn ? (
+                                "Already in playlist"
+                              ) : (
+                                <ArtistCredits track={track} className="text-xs" />
+                              )}
                             </span>
                           </span>
                         </label>

@@ -13,8 +13,8 @@ import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 
 type AuthFormProps = {
-  title: string
-  description: string
+  title?: string
+  description?: string
   submitLabel: string
   error: string | null
   pending: boolean
@@ -34,9 +34,21 @@ export function AuthForm({
   return (
     <div className="flex min-h-svh items-center justify-center p-6">
       <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
+        <CardHeader className="items-center text-center">
+          {title || description ? (
+            <>
+              {title ? <CardTitle>{title}</CardTitle> : null}
+              {description ? (
+                <CardDescription>{description}</CardDescription>
+              ) : null}
+            </>
+          ) : (
+            <img
+              src="/logo.svg"
+              alt="0x1audio"
+              className="mx-auto my-4 h-6 w-auto dark:invert"
+            />
+          )}
         </CardHeader>
         <form
           className="flex flex-col gap-6"

@@ -14,6 +14,7 @@ import {
 } from "~/components/ui/card"
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
+import { Skeleton } from "~/components/ui/skeleton"
 
 export default function UsersPage() {
   const { user } = useOutletContext<AppOutletContext>()
@@ -21,7 +22,7 @@ export default function UsersPage() {
   const [pending, setPending] = useState(false)
   const [created, setCreated] = useState<string | null>(null)
 
-  if (user.role !== "master") {
+  if (user && user.role !== "master") {
     return <Navigate to="/" replace />
   }
 
@@ -34,69 +35,97 @@ export default function UsersPage() {
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Create user</CardTitle>
-          <CardDescription>They can sign in with this email and password.</CardDescription>
-        </CardHeader>
-        <form
-          className="flex flex-col gap-6"
-          onSubmit={async (event) => {
-            event.preventDefault()
-            const form = new FormData(event.currentTarget)
-            const email = String(form.get("email") ?? "")
-            const password = String(form.get("password") ?? "")
-            setPending(true)
-            setError(null)
-            setCreated(null)
-            const { error: apiError, response } = await api.v1.createUser({
-              body: { email, password },
-            })
-            setPending(false)
-            if (apiError) {
-              setError(
-                response?.status === 409 ? "Email already registered" : "Could not create user"
-              )
-              return
-            }
-            setCreated(email)
-            event.currentTarget.reset()
-          }}
-        >
+      {!user ? (
+        <Card>
+          <CardHeader className="gap-2">
+            <Skeleton className="h-5 w-28" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-64 max-w-full" />
+          </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="new-email">Email</Label>
-              <Input
-                id="new-email"
-                name="email"
-                type="email"
-                required
-                disabled={pending}
-              />
+              <Skeleton className="h-4 w-12" />
+              <Skeleton className="h-8 w-full" />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="new-password">Password</Label>
-              <Input
-                id="new-password"
-                name="password"
-                type="password"
-                minLength={8}
-                required
-                disabled={pending}
-              />
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-8 w-full" />
             </div>
-            {error ? <p className="text-destructive text-sm">{error}</p> : null}
-            {created ? (
-              <p className="text-muted-foreground text-sm">Created {created}</p>
-            ) : null}
           </CardContent>
           <CardFooter>
-            <Button type="submit" disabled={pending}>
-              {pending ? "Creating…" : "Create user"}
-            </Button>
+            <Skeleton className="h-8 w-28" />
           </CardFooter>
-        </form>
-      </Card>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Create user</CardTitle>
+            <CardDescription>
+              They sign in with this email and temporary password, then must choose
+              a new password and display name on first login.
+            </CardDescription>
+          </CardHeader>
+          <form
+            className="flex flex-col gap-6"
+            onSubmit={async (event) => {
+              event.preventDefault()
+              const form = new FormData(event.currentTarget)
+              const email = String(form.get("email") ?? "")
+              const password = String(form.get("password") ?? "")
+              setPending(true)
+              setError(null)
+              setCreated(null)
+              const { error: apiError, response } = await api.v1.createUser({
+                body: { email, password },
+              })
+              setPending(false)
+              if (apiError) {
+                setError(
+                  response?.status === 409
+                    ? "Email already registered"
+                    : "Could not create user",
+                )
+                return
+              }
+              setCreated(email)
+              event.currentTarget.reset()
+            }}
+          >
+            <CardContent className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="new-email">Email</Label>
+                <Input
+                  id="new-email"
+                  name="email"
+                  type="email"
+                  required
+                  disabled={pending}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="new-password">Temporary password</Label>
+                <Input
+                  id="new-password"
+                  name="password"
+                  type="password"
+                  minLength={8}
+                  required
+                  disabled={pending}
+                />
+              </div>
+              {error ? <p className="text-destructive text-sm">{error}</p> : null}
+              {created ? (
+                <p className="text-muted-foreground text-sm">Created {created}</p>
+              ) : null}
+            </CardContent>
+            <CardFooter>
+              <Button type="submit" disabled={pending}>
+                {pending ? "Creating…" : "Create user"}
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+      )}
     </div>
   )
 }

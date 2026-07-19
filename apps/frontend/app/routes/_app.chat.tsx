@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Outlet, useMatch, useNavigate, useOutletContext } from "react-router"
 import { ClockCounterClockwise } from "@phosphor-icons/react"
 
@@ -12,9 +12,22 @@ import {
   CommandItem,
   CommandList,
 } from "~/components/ui/command"
+import { Reveal } from "~/components/reveal"
+import { Skeleton } from "~/components/ui/skeleton"
+import { Spinner } from "~/components/ui/spinner"
 import { api, type ChatSummaryOut } from "~/lib/api"
+import { hasChatEntered, markChatEntered } from "~/lib/chat-cache"
 import { cn } from "~/lib/utils"
 import type { AppOutletContext } from "~/routes/_app"
+
+export type ChatOutletContext = AppOutletContext & {
+  chatTitle: string
+  setChatTitle: (title: string) => void
+}
+
+function chatTitlePending(title: string | null | undefined): boolean {
+  return !title?.trim()
+}
 
 export default function ChatLayout() {
   const navigate = useNavigate()
@@ -23,6 +36,21 @@ export default function ChatLayout() {
   const isThread = Boolean(threadMatch)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [chats, setChats] = useState<ChatSummaryOut[] | null>(null)
+  const [chatTitle, setChatTitle] = useState("")
+  const alreadyEntered = hasChatEntered()
+  const [pageIn, setPageIn] = useState(alreadyEntered)
+
+  useEffect(() => {
+    if (alreadyEntered) {
+      setPageIn(true)
+      return
+    }
+    const timer = window.setTimeout(() => {
+      setPageIn(true)
+      markChatEntered()
+    }, 50)
+    return () => window.clearTimeout(timer)
+  }, [alreadyEntered])
 
   const loadChats = useCallback(() => {
     setChats(null)
@@ -35,8 +63,15 @@ export default function ChatLayout() {
     })
   }, [])
 
+  const outletContext: ChatOutletContext = {
+    ...context,
+    chatTitle,
+    setChatTitle,
+  }
+
   return (
-    <div
+    <Reveal
+      visible={pageIn}
       className={cn(
         "relative mx-auto flex h-full min-h-0 w-full max-w-4xl flex-col",
         isThread ? "px-6 pt-6" : "px-6",
@@ -49,11 +84,17 @@ export default function ChatLayout() {
         )}
       >
         {isThread ? (
-          <div className="flex min-w-0 flex-col gap-1">
-            <h1 className="text-2xl font-medium tracking-tight">Chat</h1>
-            <p className="text-muted-foreground text-sm">
-              Ask your library in natural language.
-            </p>
+          <div className="flex min-w-0 flex-1 items-center pt-0.5">
+            {chatTitlePending(chatTitle) ? (
+              <Skeleton
+                className="h-8 w-48 max-w-full"
+                aria-label="Generating chat title"
+              />
+            ) : (
+              <h1 className="truncate text-2xl font-medium tracking-tight">
+                {chatTitle}
+              </h1>
+            )}
           </div>
         ) : (
           <span className="sr-only">Chat</span>
@@ -74,7 +115,7 @@ export default function ChatLayout() {
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col">
-        <Outlet context={context} />
+        <Outlet context={outletContext} />
       </div>
 
       <CommandDialog
@@ -87,21 +128,36 @@ export default function ChatLayout() {
           <CommandInput placeholder="Search chats…" />
           <CommandList>
             <CommandEmpty>
-              {chats === null ? "Loading…" : "No chats found."}
+              {chats === null ? (
+                <span className="inline-flex items-center gap-2">
+                  <Spinner className="size-4" />
+                  Loading chats
+                </span>
+              ) : (
+                "No chats found."
+              )}
             </CommandEmpty>
             {chats && chats.length > 0 ? (
               <CommandGroup heading="Recent">
                 {chats.map((chat) => (
                   <CommandItem
                     key={chat.id}
-                    value={`${chat.title} ${chat.id}`}
+                    value={
+                      chatTitlePending(chat.title)
+                        ? `untitled ${chat.id}`
+                        : `${chat.title} ${chat.id}`
+                    }
                     onSelect={() => {
                       setHistoryOpen(false)
                       void navigate(`/chat/${chat.id}`)
                     }}
                   >
                     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="truncate">{chat.title}</span>
+                      {chatTitlePending(chat.title) ? (
+                        <Skeleton className="h-4 w-36" />
+                      ) : (
+                        <span className="truncate">{chat.title}</span>
+                      )}
                       <span className="text-muted-foreground text-xs">
                         {new Date(chat.updated_at).toLocaleString()}
                       </span>
@@ -113,6 +169,6 @@ export default function ChatLayout() {
           </CommandList>
         </Command>
       </CommandDialog>
-    </div>
+    </Reveal>
   )
 }

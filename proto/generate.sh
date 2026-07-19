@@ -11,9 +11,40 @@ if [[ ! -x "$PY" ]]; then
   exit 1
 fi
 
+rewrite_grpc_import() {
+  local grpc_file="$1"
+  local prefix="$2"
+  "$PY" - "$grpc_file" "$prefix" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+path = Path(sys.argv[1])
+prefix = sys.argv[2]
+text = path.read_text()
+patterns = [
+    r"^import ox1audio\.ml\.v1\.ml_worker_pb2 as (.*)$",
+    r"^from ox1audio\.ml\.v1 import ml_worker_pb2 as (.*)$",
+    r"^import ox1audio\.v1\.ml_worker_pb2 as (.*)$",
+    r"^from ox1audio\.v1 import ml_worker_pb2 as (.*)$",
+]
+for pattern in patterns:
+    text, n = re.subn(
+        pattern,
+        rf"from {prefix} import ml_worker_pb2 as \1",
+        text,
+        count=1,
+        flags=re.M,
+    )
+    if n:
+        break
+path.write_text(text)
+PY
+}
+
 gen_into() {
   local dest="$1"
-  local import_fix="$2"
+  local prefix="$2"
   rm -rf "$dest"
   mkdir -p "$dest"
   "$PY" -m grpc_tools.protoc \
@@ -21,24 +52,17 @@ gen_into() {
     --python_out="$dest" \
     --grpc_python_out="$dest" \
     --pyi_out="$dest" \
-    "$ROOT/tunelink/v1/ml_worker.proto"
-  touch "$dest/tunelink/__init__.py"
-  touch "$dest/tunelink/v1/__init__.py"
-  local grpc_file="$dest/tunelink/v1/ml_worker_pb2_grpc.py"
-  if [[ "$(uname)" == "Darwin" ]]; then
-    sed -i '' "s/^import tunelink\\.v1\\.ml_worker_pb2 as \\(.*\\)$/from ${import_fix} import ml_worker_pb2 as \\1/" "$grpc_file"
-    sed -i '' "s/^from tunelink\\.v1 import ml_worker_pb2 as \\(.*\\)$/from ${import_fix} import ml_worker_pb2 as \\1/" "$grpc_file"
-  else
-    sed -i "s/^import tunelink\\.v1\\.ml_worker_pb2 as \\(.*\\)$/from ${import_fix} import ml_worker_pb2 as \\1/" "$grpc_file"
-    sed -i "s/^from tunelink\\.v1 import ml_worker_pb2 as \\(.*\\)$/from ${import_fix} import ml_worker_pb2 as \\1/" "$grpc_file"
-  fi
+    "$ROOT/ox1audio/v1/ml_worker.proto"
+  touch "$dest/ox1audio/__init__.py"
+  touch "$dest/ox1audio/v1/__init__.py"
+  rewrite_grpc_import "$dest/ox1audio/v1/ml_worker_pb2_grpc.py" "$prefix"
 }
 
-BACKEND_DEST="$REPO/apps/backend/src/tunelink_backend/ml_client/generated"
-WORKER_DEST="$REPO/apps/ml-worker/src/tunelink_ml_worker/generated"
+BACKEND_DEST="$REPO/apps/backend/src/ox1audio_backend/ml_client/generated"
+WORKER_DEST="$REPO/apps/ml-worker/src/ox1audio_ml_worker/generated"
 
-gen_into "$BACKEND_DEST" "tunelink_backend.ml_client.generated.tunelink.v1"
-gen_into "$WORKER_DEST" "tunelink_ml_worker.generated.tunelink.v1"
+gen_into "$BACKEND_DEST" "ox1audio_backend.ml_client.generated.ox1audio.v1"
+gen_into "$WORKER_DEST" "ox1audio_ml_worker.generated.ox1audio.v1"
 
 echo "Generated:"
 echo "  $BACKEND_DEST"

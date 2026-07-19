@@ -60,6 +60,17 @@
     --shadow-xl:
       0 8px 18px -4px rgb(15 23 42 / 0.08), 0 3px 6px -3px rgb(15 23 42 / 0.04);
     --shadow-2xl: 0 12px 28px -8px rgb(15 23 42 / 0.12);
+    /* Medusa button / field shadows */
+    --shadow-buttons-inverted: var(--buttons-inverted);
+    --shadow-buttons-inverted-focus: var(--buttons-inverted-focus);
+    --shadow-buttons-neutral: var(--buttons-neutral);
+    --shadow-buttons-neutral-focus: var(--buttons-neutral-focus);
+    --shadow-buttons-danger: var(--buttons-danger);
+    --shadow-buttons-danger-focus: var(--buttons-danger-focus);
+    --shadow-borders-base: var(--borders-base);
+    --shadow-borders-error: var(--borders-error);
+    --shadow-borders-focus: var(--borders-focus);
+    --shadow-borders-interactive-with-active: var(--borders-interactive-with-active);
 }
 
 :root {
@@ -69,8 +80,9 @@
     --card-foreground: oklch(0.148 0.004 228.8);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.148 0.004 228.8);
-    --primary: oklch(0.488 0.243 264.376);
-    --primary-foreground: oklch(0.97 0.014 254.604);
+    /* Soft charcoal — deeper black, still not pure #000 */
+    --primary: oklch(0.18 0.008 260);
+    --primary-foreground: oklch(0.985 0.002 247);
     --secondary: oklch(0.967 0.001 286.375);
     --secondary-foreground: oklch(0.21 0.006 285.885);
     --muted: oklch(0.963 0.002 197.1);
@@ -80,21 +92,54 @@
     --destructive: oklch(0.577 0.245 27.325);
     --border: oklch(0.925 0.005 214.3);
     --input: oklch(0.925 0.005 214.3);
-    --ring: oklch(0.723 0.014 214.4);
-    --chart-1: oklch(0.809 0.105 251.813);
-    --chart-2: oklch(0.623 0.214 259.815);
-    --chart-3: oklch(0.546 0.245 262.881);
-    --chart-4: oklch(0.488 0.243 264.376);
-    --chart-5: oklch(0.424 0.199 265.638);
+    --ring: oklch(0.32 0.015 260);
+    --chart-1: oklch(0.42 0.015 260);
+    --chart-2: oklch(0.32 0.012 260);
+    --chart-3: oklch(0.24 0.01 260);
+    --chart-4: oklch(0.18 0.008 260);
+    --chart-5: oklch(0.14 0.006 260);
     --radius: 0.45rem;
     --sidebar: oklch(0.987 0.002 197.1);
     --sidebar-foreground: oklch(0.148 0.004 228.8);
-    --sidebar-primary: oklch(0.546 0.245 262.881);
-    --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
+    --sidebar-primary: oklch(0.18 0.008 260);
+    --sidebar-primary-foreground: oklch(0.985 0.002 247);
     --sidebar-accent: oklch(0.963 0.002 197.1);
     --sidebar-accent-foreground: oklch(0.218 0.008 223.9);
     --sidebar-border: oklch(0.925 0.005 214.3);
-    --sidebar-ring: oklch(0.723 0.014 214.4);
+    --sidebar-ring: oklch(0.32 0.015 260);
+
+    /* Medusa UI tokens (buttons + inputs) — light */
+    --button-inverted: rgba(39, 39, 42, 1);
+    --button-inverted-hover: rgba(63, 63, 70, 1);
+    --button-inverted-pressed: rgba(82, 82, 91, 1);
+    --button-neutral: rgba(255, 255, 255, 1);
+    --button-neutral-hover: rgba(244, 244, 245, 1);
+    --button-neutral-pressed: rgba(228, 228, 231, 1);
+    --button-danger: rgba(225, 29, 72, 1);
+    --button-danger-hover: rgba(190, 18, 60, 1);
+    --button-danger-pressed: rgba(159, 18, 57, 1);
+    --button-transparent: rgba(255, 255, 255, 0);
+    --button-transparent-hover: rgba(244, 244, 245, 1);
+    --button-transparent-pressed: rgba(228, 228, 231, 1);
+    --bg-field: rgba(250, 250, 250, 1);
+    --bg-field-hover: rgba(244, 244, 245, 1);
+    --bg-disabled: rgba(244, 244, 245, 1);
+    --bg-base: rgba(255, 255, 255, 1);
+    --fg-base: rgba(24, 24, 27, 1);
+    --fg-muted: rgba(113, 113, 122, 1);
+    --fg-disabled: rgba(161, 161, 170, 1);
+    --fg-on-color: rgba(255, 255, 255, 1);
+    --contrast-fg-primary: rgba(255, 255, 255, 0.88);
+    --buttons-inverted: 0px 0.75px 0px 0px rgba(255, 255, 255, 0.2) inset, 0px 1px 2px 0px rgba(0, 0, 0, 0.4), 0px 0px 0px 1px rgba(24, 24, 27, 1);
+    --buttons-inverted-focus: 0px 0.75px 0px 0px rgba(255, 255, 255, 0.2) inset, 0px 1px 2px 0px rgba(0, 0, 0, 0.4), 0px 0px 0px 1px rgba(24, 24, 27, 1), 0px 0px 0px 2px rgba(255, 255, 255, 1), 0px 0px 0px 4px rgba(59, 130, 246, 0.6);
+    --buttons-neutral: 0px 1px 2px 0px rgba(0, 0, 0, 0.12), 0px 0px 0px 1px rgba(0, 0, 0, 0.08);
+    --buttons-neutral-focus: 0px 1px 2px 0px rgba(0, 0, 0, 0.12), 0px 0px 0px 1px rgba(0, 0, 0, 0.08), 0px 0px 0px 2px rgba(255, 255, 255, 1), 0px 0px 0px 4px rgba(59, 130, 246, 0.6);
+    --buttons-danger: 0px 0.75px 0px 0px rgba(255, 255, 255, 0.2) inset, 0px 1px 2px 0px rgba(190, 18, 60, 0.4), 0px 0px 0px 1px rgba(190, 18, 60, 1);
+    --buttons-danger-focus: 0px 0.75px 0px 0px rgba(255, 255, 255, 0.2) inset, 0px 1px 2px 0px rgba(190, 18, 60, 0.4), 0px 0px 0px 1px rgba(190, 18, 60, 1), 0px 0px 0px 2px rgba(255, 255, 255, 1), 0px 0px 0px 4px rgba(59, 130, 246, 0.6);
+    --borders-base: 0px 1px 2px 0px rgba(0, 0, 0, 0.12), 0px 0px 0px 1px rgba(0, 0, 0, 0.08);
+    --borders-error: 0px 0px 0px 1px rgba(225, 29, 72, 1), 0px 0px 0px 3px rgba(225, 29, 72, 0.15);
+    --borders-focus: 0px 0px 0px 1px rgba(255, 255, 255, 1), 0px 0px 0px 3px rgba(59, 130, 246, 0.6);
+    --borders-interactive-with-active: 0px 0px 0px 4px rgba(37, 99, 235, 0.2), 0px 0px 0px 1px rgba(37, 99, 235, 1);
 }
 
 .dark {
@@ -104,8 +149,9 @@
     --card-foreground: oklch(0.987 0.002 197.1);
     --popover: oklch(0.218 0.008 223.9);
     --popover-foreground: oklch(0.987 0.002 197.1);
-    --primary: oklch(0.424 0.199 265.638);
-    --primary-foreground: oklch(0.97 0.014 254.604);
+    /* Soft light primary — less bright than white for dark surfaces */
+    --primary: oklch(0.82 0.006 250);
+    --primary-foreground: oklch(0.16 0.008 260);
     --secondary: oklch(0.274 0.006 286.033);
     --secondary-foreground: oklch(0.985 0 0);
     --muted: oklch(0.275 0.011 216.9);
@@ -115,20 +161,118 @@
     --destructive: oklch(0.704 0.191 22.216);
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.56 0.021 213.5);
-    --chart-1: oklch(0.809 0.105 251.813);
-    --chart-2: oklch(0.623 0.214 259.815);
-    --chart-3: oklch(0.546 0.245 262.881);
-    --chart-4: oklch(0.488 0.243 264.376);
-    --chart-5: oklch(0.424 0.199 265.638);
+    --ring: oklch(0.72 0.012 250);
+    --chart-1: oklch(0.82 0.01 250);
+    --chart-2: oklch(0.7 0.01 250);
+    --chart-3: oklch(0.58 0.01 250);
+    --chart-4: oklch(0.46 0.01 250);
+    --chart-5: oklch(0.36 0.01 250);
     --sidebar: oklch(0.218 0.008 223.9);
     --sidebar-foreground: oklch(0.987 0.002 197.1);
-    --sidebar-primary: oklch(0.623 0.214 259.815);
-    --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
+    --sidebar-primary: oklch(0.82 0.006 250);
+    --sidebar-primary-foreground: oklch(0.16 0.008 260);
     --sidebar-accent: oklch(0.275 0.011 216.9);
     --sidebar-accent-foreground: oklch(0.987 0.002 197.1);
     --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.56 0.021 213.5);
+    --sidebar-ring: oklch(0.72 0.012 250);
+
+    /* Medusa UI tokens (buttons + inputs) — dark */
+    --button-inverted: rgba(82, 82, 91, 1);
+    --button-inverted-hover: rgba(113, 113, 122, 1);
+    --button-inverted-pressed: rgba(161, 161, 170, 1);
+    --button-neutral: rgba(255, 255, 255, 0.04);
+    --button-neutral-hover: rgba(255, 255, 255, 0.08);
+    --button-neutral-pressed: rgba(255, 255, 255, 0.12);
+    --button-danger: rgba(159, 18, 57, 1);
+    --button-danger-hover: rgba(190, 18, 60, 1);
+    --button-danger-pressed: rgba(225, 29, 72, 1);
+    --button-transparent: rgba(255, 255, 255, 0);
+    --button-transparent-hover: rgba(255, 255, 255, 0.08);
+    --button-transparent-pressed: rgba(255, 255, 255, 0.12);
+    --bg-field: rgba(255, 255, 255, 0.04);
+    --bg-field-hover: rgba(255, 255, 255, 0.08);
+    --bg-disabled: rgba(39, 39, 42, 1);
+    --bg-base: rgba(33, 33, 36, 1);
+    --fg-base: rgba(244, 244, 245, 1);
+    --fg-muted: rgba(113, 113, 122, 1);
+    --fg-disabled: rgba(82, 82, 91, 1);
+    --fg-on-color: rgba(255, 255, 255, 1);
+    --contrast-fg-primary: rgba(255, 255, 255, 0.88);
+    --buttons-inverted: 0px -1px 0px 0px rgba(255, 255, 255, 0.12), 0px 0px 0px 1px rgba(255, 255, 255, 0.1), 0px 0px 0px 1px rgba(82, 82, 91, 1), 0px 0px 1px 1.5px rgba(0, 0, 0, 0.24), 0px 2px 2px 0px rgba(0, 0, 0, 0.24);
+    --buttons-inverted-focus: 0px -1px 0px 0px rgba(255, 255, 255, 0.12), 0px 0px 0px 1px rgba(255, 255, 255, 0.12), 0px 0px 0px 1px rgba(82, 82, 91, 1), 0px 0px 0px 2px rgba(24, 24, 27, 1), 0px 0px 0px 4px rgba(96, 165, 250, 0.8);
+    --buttons-neutral: 0px -1px 0px 0px rgba(255, 255, 255, 0.06), 0px 0px 0px 1px rgba(255, 255, 255, 0.06), 0px 0px 0px 1px rgba(39, 39, 42, 1), 0px 0px 1px 1.5px rgba(0, 0, 0, 0.24), 0px 2px 2px 0px rgba(0, 0, 0, 0.24);
+    --buttons-neutral-focus: 0px -1px 0px 0px rgba(255, 255, 255, 0.06), 0px 0px 0px 1px rgba(255, 255, 255, 0.06), 0px 0px 0px 1px rgba(39, 39, 42, 1), 0px 0px 0px 2px rgba(24, 24, 27, 1), 0px 0px 0px 4px rgba(96, 165, 250, 0.8);
+    --buttons-danger: 0px -1px 0px 0px rgba(255, 255, 255, 0.16), 0px 0px 0px 1px rgba(255, 255, 255, 0.12), 0px 0px 0px 1px rgba(159, 18, 57, 1), 0px 0px 1px 1.5px rgba(0, 0, 0, 0.24), 0px 2px 2px 0px rgba(0, 0, 0, 0.24);
+    --buttons-danger-focus: 0px -1px 0px 0px rgba(255, 255, 255, 0.16), 0px 0px 0px 1px rgba(255, 255, 255, 0.12), 0px 0px 0px 1px rgba(159, 18, 57, 1), 0px 0px 0px 2px rgba(24, 24, 27, 1), 0px 0px 0px 4px rgba(96, 165, 250, 0.8);
+    --borders-base: 0px -1px 0px 0px rgba(255, 255, 255, 0.06), 0px 0px 0px 1px rgba(255, 255, 255, 0.06), 0px 0px 0px 1px rgba(39, 39, 42, 1), 0px 0px 1px 1.5px rgba(0, 0, 0, 0.24), 0px 2px 2px 0px rgba(0, 0, 0, 0.24);
+    --borders-error: 0px 0px 0px 1px rgba(244, 63, 94, 1), 0px 0px 0px 3px rgba(225, 29, 72, 0.25);
+    --borders-focus: 0px 0px 0px 1px rgba(24, 24, 27, 1), 0px 0px 0px 3px rgba(96, 165, 250, 0.8);
+    --borders-interactive-with-active: 0px 0px 0px 1px rgba(96, 165, 250, 1), 0px 0px 0px 4px rgba(59, 130, 246, 0.25);
+}
+
+/* Medusa button sheen overlays (applied via after:*) */
+@utility button-inverted-gradient {
+  background-image: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.14),
+    rgba(255, 255, 255, 0)
+  );
+}
+@utility button-inverted-hover-gradient {
+  background-image: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.12),
+    rgba(255, 255, 255, 0)
+  );
+}
+@utility button-inverted-pressed-gradient {
+  background-image: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.06),
+    rgba(255, 255, 255, 0)
+  );
+}
+@utility button-neutral-gradient {
+  background-image: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.9),
+    rgba(255, 255, 255, 0)
+  );
+}
+@utility button-neutral-hover-gradient {
+  background-image: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.7),
+    rgba(255, 255, 255, 0)
+  );
+}
+@utility button-neutral-pressed-gradient {
+  background-image: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.4),
+    rgba(255, 255, 255, 0)
+  );
+}
+@utility button-danger-gradient {
+  background-image: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.16),
+    rgba(255, 255, 255, 0)
+  );
+}
+@utility button-danger-hover-gradient {
+  background-image: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.12),
+    rgba(255, 255, 255, 0)
+  );
+}
+@utility button-danger-pressed-gradient {
+  background-image: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.06),
+    rgba(255, 255, 255, 0)
+  );
 }
 
 @layer base {
@@ -158,16 +302,18 @@
   right: 1rem !important;
   width: auto !important;
   max-width: none !important;
-  transform: scale(1);
-  transform-origin: bottom right;
+  background: transparent !important;
+  background-color: transparent !important;
+  transform-origin: bottom center;
   isolation: isolate;
+  /* Resting = closed. WAAPI drives enter/exit (fill: forwards). */
+  transform: translate3d(0, 115%, 0);
+  filter: blur(8px);
   transition:
-    transform 180ms var(--app-floating-player-ease),
     width 180ms var(--app-floating-player-ease),
     max-width 180ms var(--app-floating-player-ease),
     left 180ms var(--app-floating-player-ease),
     right 180ms var(--app-floating-player-ease),
-    opacity 160ms ease,
     color 220ms ease;
 }
 
@@ -176,21 +322,11 @@
   right: 1rem !important;
   width: var(--app-floating-player-mini-width) !important;
   max-width: var(--app-floating-player-mini-width) !important;
-  transform: scale(0.985);
 }
 
-/* Sit above the floating player when it’s open; otherwise bottom-right. */
+/* Default dock; open-player offset is set inline from the graph route. */
 .graph-camera-controls {
-  bottom: 1rem;
-  transition: bottom 180ms var(--app-floating-player-ease, ease);
-}
-
-:has(.app-floating-player) .graph-camera-controls {
-  bottom: 5.75rem;
-}
-
-:has(.app-floating-player[data-mini="true"]) .graph-camera-controls {
-  bottom: 5.25rem;
+  transition: bottom 280ms var(--app-floating-player-ease, ease);
 }
 
 .player-gloss {
@@ -491,15 +627,13 @@
 }
 
 @media (min-width: 768px) {
-  [data-slot="sidebar-wrapper"]:has(> [data-slot="sidebar"])
+  .group\/sidebar-wrapper:has([data-slot="sidebar"]:not([data-state="collapsed"]))
     .app-floating-player:not([data-mini="true"]) {
     left: calc(var(--sidebar-width) + 1rem) !important;
     right: 1rem !important;
   }
 
-  [data-slot="sidebar-wrapper"]:has(
-      > [data-slot="sidebar"][data-state="collapsed"]
-    )
+  .group\/sidebar-wrapper:has([data-slot="sidebar"][data-state="collapsed"])
     .app-floating-player:not([data-mini="true"]) {
     left: calc(var(--sidebar-width-icon) + 1rem) !important;
     right: 1rem !important;
@@ -664,13 +798,31 @@
 
 @media (prefers-reduced-motion: reduce) {
   .app-floating-player,
+  .graph-camera-controls,
   .player-gloss-blob,
   .player-gloss-wave,
   .player-gloss-mesh,
   .player-gloss-sheen,
   .greeting-glow-blob {
     transition: none;
-    animation: none;
+    animation: none !important;
+  }
+
+  .app-floating-player {
+    transition: none !important;
+    filter: none !important;
+  }
+
+  .app-floating-player[data-open="true"] {
+    transform: translate3d(0, 0, 0) !important;
+  }
+
+  .app-floating-player:not([data-open="true"]) {
+    transform: translate3d(0, 115%, 0) !important;
+  }
+
+  .graph-camera-controls {
+    transition: none !important;
   }
 
   .player-gloss-mesh,

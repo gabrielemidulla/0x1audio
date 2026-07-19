@@ -1,5 +1,5 @@
 {
-  "description": "Golden queries for Tunelink ML ranking. Reindex after recipe changes, then score Precision@k / Recall@k / MRR.",
+  "description": "Golden queries for 0x1audio ML ranking. Reindex after recipe changes, then score Precision@k / Recall@k / MRR.",
   "queries": [
     {
       "id": "calm-ambient",

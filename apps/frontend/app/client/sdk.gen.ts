@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteApiV1PlaylistsByPlaylistIdData, DeleteApiV1PlaylistsByPlaylistIdErrors, DeleteApiV1PlaylistsByPlaylistIdResponses, DeleteApiV1PlaylistsByPlaylistIdTracksData, DeleteApiV1PlaylistsByPlaylistIdTracksErrors, DeleteApiV1PlaylistsByPlaylistIdTracksResponses, GetApiV1AuthMeData, GetApiV1AuthMeResponses, GetApiV1AuthStatusData, GetApiV1AuthStatusResponses, GetApiV1CatalogImportsByImportIdData, GetApiV1CatalogImportsByImportIdErrors, GetApiV1CatalogImportsByImportIdResponses, GetApiV1CatalogImportsData, GetApiV1CatalogImportsResponses, GetApiV1CatalogJobsData, GetApiV1CatalogJobsResponses, GetApiV1CatalogTracksByTrackIdAudioData, GetApiV1CatalogTracksByTrackIdAudioErrors, GetApiV1CatalogTracksByTrackIdAudioResponses, GetApiV1CatalogTracksByTrackIdCoverData, GetApiV1CatalogTracksByTrackIdCoverErrors, GetApiV1CatalogTracksByTrackIdCoverResponses, GetApiV1CatalogTracksByTrackIdData, GetApiV1CatalogTracksByTrackIdErrors, GetApiV1CatalogTracksByTrackIdResponses, GetApiV1CatalogTracksByTrackIdWaveformData, GetApiV1CatalogTracksByTrackIdWaveformErrors, GetApiV1CatalogTracksByTrackIdWaveformResponses, GetApiV1CatalogTracksData, GetApiV1CatalogTracksErrors, GetApiV1CatalogTracksResponses, GetApiV1ChatsByChatIdData, GetApiV1ChatsByChatIdErrors, GetApiV1ChatsByChatIdResponses, GetApiV1ChatsData, GetApiV1ChatsResponses, GetApiV1GraphData, GetApiV1GraphErrors, GetApiV1GraphResponses, GetApiV1HealthData, GetApiV1HealthResponses, GetApiV1PlaylistsByPlaylistIdData, GetApiV1PlaylistsByPlaylistIdErrors, GetApiV1PlaylistsByPlaylistIdResponses, GetApiV1PlaylistsData, GetApiV1PlaylistsResponses, GetApiV1SearchSimilarByTrackIdData, GetApiV1SearchSimilarByTrackIdErrors, GetApiV1SearchSimilarByTrackIdResponses, PatchApiV1PlaylistsByPlaylistIdData, PatchApiV1PlaylistsByPlaylistIdErrors, PatchApiV1PlaylistsByPlaylistIdResponses, PostApiV1AuthLoginData, PostApiV1AuthLoginErrors, PostApiV1AuthLoginResponses, PostApiV1AuthLogoutData, PostApiV1AuthLogoutResponses, PostApiV1AuthRegisterData, PostApiV1AuthRegisterErrors, PostApiV1AuthRegisterResponses, PostApiV1AuthUsersData, PostApiV1AuthUsersErrors, PostApiV1AuthUsersResponses, PostApiV1CatalogJobsByJobIdCancelData, PostApiV1CatalogJobsByJobIdCancelErrors, PostApiV1CatalogJobsByJobIdCancelResponses, PostApiV1CatalogJobsByJobIdRetryFailedData, PostApiV1CatalogJobsByJobIdRetryFailedErrors, PostApiV1CatalogJobsByJobIdRetryFailedResponses, PostApiV1CatalogUploadsData, PostApiV1CatalogUploadsErrors, PostApiV1CatalogUploadsResponses, PostApiV1CatalogUploadsZipData, PostApiV1CatalogUploadsZipErrors, PostApiV1CatalogUploadsZipResponses, PostApiV1ChatsByChatIdMessagesData, PostApiV1ChatsByChatIdMessagesErrors, PostApiV1ChatsByChatIdMessagesResponses, PostApiV1ChatsByChatIdMessagesStreamData, PostApiV1ChatsByChatIdMessagesStreamErrors, PostApiV1ChatsByChatIdMessagesStreamResponses, PostApiV1ChatsByChatIdReplyStreamData, PostApiV1ChatsByChatIdReplyStreamErrors, PostApiV1ChatsByChatIdReplyStreamResponses, PostApiV1ChatsData, PostApiV1ChatsErrors, PostApiV1ChatsResponses, PostApiV1PlaylistsByPlaylistIdTracksData, PostApiV1PlaylistsByPlaylistIdTracksErrors, PostApiV1PlaylistsByPlaylistIdTracksResponses, PostApiV1PlaylistsData, PostApiV1PlaylistsErrors, PostApiV1PlaylistsResponses, PostApiV1SearchAudioData, PostApiV1SearchAudioErrors, PostApiV1SearchAudioResponses, PostApiV1SearchTextData, PostApiV1SearchTextErrors, PostApiV1SearchTextResponses, PutApiV1PlaylistsByPlaylistIdTracksOrderData, PutApiV1PlaylistsByPlaylistIdTracksOrderErrors, PutApiV1PlaylistsByPlaylistIdTracksOrderResponses } from './types.gen';
+import type { DeleteApiV1CatalogArtistsByArtistIdData, DeleteApiV1CatalogArtistsByArtistIdErrors, DeleteApiV1CatalogArtistsByArtistIdResponses, DeleteApiV1CatalogTracksByTrackIdData, DeleteApiV1CatalogTracksByTrackIdErrors, DeleteApiV1CatalogTracksByTrackIdResponses, DeleteApiV1PlaylistsByPlaylistIdData, DeleteApiV1PlaylistsByPlaylistIdErrors, DeleteApiV1PlaylistsByPlaylistIdResponses, DeleteApiV1PlaylistsByPlaylistIdTracksData, DeleteApiV1PlaylistsByPlaylistIdTracksErrors, DeleteApiV1PlaylistsByPlaylistIdTracksResponses, GetApiV1AuthMeAvatarData, GetApiV1AuthMeAvatarResponses, GetApiV1AuthMeData, GetApiV1AuthMeResponses, GetApiV1AuthStatusData, GetApiV1AuthStatusResponses, GetApiV1CatalogArtistsByArtistIdData, GetApiV1CatalogArtistsByArtistIdErrors, GetApiV1CatalogArtistsByArtistIdImageData, GetApiV1CatalogArtistsByArtistIdImageErrors, GetApiV1CatalogArtistsByArtistIdImageResponses, GetApiV1CatalogArtistsByArtistIdResponses, GetApiV1CatalogArtistsData, GetApiV1CatalogArtistsErrors, GetApiV1CatalogArtistsResponses, GetApiV1CatalogImportsByImportIdData, GetApiV1CatalogImportsByImportIdErrors, GetApiV1CatalogImportsByImportIdResponses, GetApiV1CatalogImportsData, GetApiV1CatalogImportsResponses, GetApiV1CatalogJobsData, GetApiV1CatalogJobsResponses, GetApiV1CatalogTracksByTrackIdAudioData, GetApiV1CatalogTracksByTrackIdAudioErrors, GetApiV1CatalogTracksByTrackIdAudioResponses, GetApiV1CatalogTracksByTrackIdCoverData, GetApiV1CatalogTracksByTrackIdCoverErrors, GetApiV1CatalogTracksByTrackIdCoverResponses, GetApiV1CatalogTracksByTrackIdData, GetApiV1CatalogTracksByTrackIdErrors, GetApiV1CatalogTracksByTrackIdResponses, GetApiV1CatalogTracksByTrackIdWaveformData, GetApiV1CatalogTracksByTrackIdWaveformErrors, GetApiV1CatalogTracksByTrackIdWaveformResponses, GetApiV1CatalogTracksData, GetApiV1CatalogTracksErrors, GetApiV1CatalogTracksResponses, GetApiV1ChatsByChatIdData, GetApiV1ChatsByChatIdErrors, GetApiV1ChatsByChatIdResponses, GetApiV1ChatsData, GetApiV1ChatsResponses, GetApiV1GraphData, GetApiV1GraphErrors, GetApiV1GraphResponses, GetApiV1HealthData, GetApiV1HealthResponses, GetApiV1PlaylistsByPlaylistIdData, GetApiV1PlaylistsByPlaylistIdErrors, GetApiV1PlaylistsByPlaylistIdResponses, GetApiV1PlaylistsData, GetApiV1PlaylistsResponses, GetApiV1SearchSimilarByTrackIdData, GetApiV1SearchSimilarByTrackIdErrors, GetApiV1SearchSimilarByTrackIdResponses, PatchApiV1AuthMeData, PatchApiV1AuthMeErrors, PatchApiV1AuthMeResponses, PatchApiV1CatalogTracksByTrackIdData, PatchApiV1CatalogTracksByTrackIdErrors, PatchApiV1CatalogTracksByTrackIdResponses, PatchApiV1PlaylistsByPlaylistIdData, PatchApiV1PlaylistsByPlaylistIdErrors, PatchApiV1PlaylistsByPlaylistIdResponses, PostApiV1AuthLoginData, PostApiV1AuthLoginErrors, PostApiV1AuthLoginResponses, PostApiV1AuthLogoutData, PostApiV1AuthLogoutResponses, PostApiV1AuthMeEmailData, PostApiV1AuthMeEmailErrors, PostApiV1AuthMeEmailResponses, PostApiV1AuthMePasswordData, PostApiV1AuthMePasswordErrors, PostApiV1AuthMePasswordResponses, PostApiV1AuthRegisterData, PostApiV1AuthRegisterErrors, PostApiV1AuthRegisterResponses, PostApiV1AuthUsersData, PostApiV1AuthUsersErrors, PostApiV1AuthUsersResponses, PostApiV1CatalogArtistsData, PostApiV1CatalogArtistsErrors, PostApiV1CatalogArtistsResponses, PostApiV1CatalogJobsByJobIdCancelData, PostApiV1CatalogJobsByJobIdCancelErrors, PostApiV1CatalogJobsByJobIdCancelResponses, PostApiV1CatalogJobsByJobIdRetryFailedData, PostApiV1CatalogJobsByJobIdRetryFailedErrors, PostApiV1CatalogJobsByJobIdRetryFailedResponses, PostApiV1CatalogTracksBulkDeleteData, PostApiV1CatalogTracksBulkDeleteErrors, PostApiV1CatalogTracksBulkDeleteResponses, PostApiV1CatalogUploadsData, PostApiV1CatalogUploadsErrors, PostApiV1CatalogUploadsResponses, PostApiV1CatalogUploadsZipData, PostApiV1CatalogUploadsZipErrors, PostApiV1CatalogUploadsZipResponses, PostApiV1ChatsByChatIdMessagesData, PostApiV1ChatsByChatIdMessagesErrors, PostApiV1ChatsByChatIdMessagesResponses, PostApiV1ChatsByChatIdMessagesStreamData, PostApiV1ChatsByChatIdMessagesStreamErrors, PostApiV1ChatsByChatIdMessagesStreamResponses, PostApiV1ChatsByChatIdReplyStreamData, PostApiV1ChatsByChatIdReplyStreamErrors, PostApiV1ChatsByChatIdReplyStreamResponses, PostApiV1ChatsData, PostApiV1ChatsErrors, PostApiV1ChatsResponses, PostApiV1PlaylistsByPlaylistIdTracksData, PostApiV1PlaylistsByPlaylistIdTracksErrors, PostApiV1PlaylistsByPlaylistIdTracksResponses, PostApiV1PlaylistsData, PostApiV1PlaylistsErrors, PostApiV1PlaylistsResponses, PostApiV1SearchAudioData, PostApiV1SearchAudioErrors, PostApiV1SearchAudioResponses, PostApiV1SearchTextData, PostApiV1SearchTextErrors, PostApiV1SearchTextResponses, PutApiV1AuthMeAvatarData, PutApiV1AuthMeAvatarErrors, PutApiV1AuthMeAvatarResponses, PutApiV1CatalogTracksByTrackIdCoverData, PutApiV1CatalogTracksByTrackIdCoverErrors, PutApiV1CatalogTracksByTrackIdCoverResponses, PutApiV1PlaylistsByPlaylistIdTracksOrderData, PutApiV1PlaylistsByPlaylistIdTracksOrderErrors, PutApiV1PlaylistsByPlaylistIdTracksOrderResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -111,6 +111,70 @@ export class V1 extends HeyApiClient {
     }
     
     /**
+     * Update Me
+     */
+    public updateMe<ThrowOnError extends boolean = false>(options: Options<PatchApiV1AuthMeData, ThrowOnError>): RequestResult<PatchApiV1AuthMeResponses, PatchApiV1AuthMeErrors, ThrowOnError> {
+        return (options.client ?? this.client).patch<PatchApiV1AuthMeResponses, PatchApiV1AuthMeErrors, ThrowOnError>({
+            url: '/api/v1/auth/me',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
+     * Change Password
+     */
+    public changePassword<ThrowOnError extends boolean = false>(options: Options<PostApiV1AuthMePasswordData, ThrowOnError>): RequestResult<PostApiV1AuthMePasswordResponses, PostApiV1AuthMePasswordErrors, ThrowOnError> {
+        return (options.client ?? this.client).post<PostApiV1AuthMePasswordResponses, PostApiV1AuthMePasswordErrors, ThrowOnError>({
+            url: '/api/v1/auth/me/password',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
+     * Change Email
+     */
+    public changeEmail<ThrowOnError extends boolean = false>(options: Options<PostApiV1AuthMeEmailData, ThrowOnError>): RequestResult<PostApiV1AuthMeEmailResponses, PostApiV1AuthMeEmailErrors, ThrowOnError> {
+        return (options.client ?? this.client).post<PostApiV1AuthMeEmailResponses, PostApiV1AuthMeEmailErrors, ThrowOnError>({
+            url: '/api/v1/auth/me/email',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
+     * Get My Avatar
+     */
+    public getMyAvatar<ThrowOnError extends boolean = false>(options?: Options<GetApiV1AuthMeAvatarData, ThrowOnError>): RequestResult<GetApiV1AuthMeAvatarResponses, unknown, ThrowOnError> {
+        return (options?.client ?? this.client).get<GetApiV1AuthMeAvatarResponses, unknown, ThrowOnError>({ url: '/api/v1/auth/me/avatar', ...options });
+    }
+    
+    /**
+     * Update My Avatar
+     */
+    public updateMyAvatar<ThrowOnError extends boolean = false>(options: Options<PutApiV1AuthMeAvatarData, ThrowOnError>): RequestResult<PutApiV1AuthMeAvatarResponses, PutApiV1AuthMeAvatarErrors, ThrowOnError> {
+        return (options.client ?? this.client).put<PutApiV1AuthMeAvatarResponses, PutApiV1AuthMeAvatarErrors, ThrowOnError>({
+            ...formDataBodySerializer,
+            url: '/api/v1/auth/me/avatar',
+            ...options,
+            headers: {
+                'Content-Type': null,
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
      * Upload Track
      */
     public uploadTrack<ThrowOnError extends boolean = false>(options: Options<PostApiV1CatalogUploadsData, ThrowOnError>): RequestResult<PostApiV1CatalogUploadsResponses, PostApiV1CatalogUploadsErrors, ThrowOnError> {
@@ -187,6 +251,27 @@ export class V1 extends HeyApiClient {
     }
     
     /**
+     * Delete tracks
+     */
+    public deleteTracks<ThrowOnError extends boolean = false>(options: Options<PostApiV1CatalogTracksBulkDeleteData, ThrowOnError>): RequestResult<PostApiV1CatalogTracksBulkDeleteResponses, PostApiV1CatalogTracksBulkDeleteErrors, ThrowOnError> {
+        return (options.client ?? this.client).post<PostApiV1CatalogTracksBulkDeleteResponses, PostApiV1CatalogTracksBulkDeleteErrors, ThrowOnError>({
+            url: '/api/v1/catalog/tracks/bulk-delete',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
+     * Delete a track
+     */
+    public deleteTrack<ThrowOnError extends boolean = false>(options: Options<DeleteApiV1CatalogTracksByTrackIdData, ThrowOnError>): RequestResult<DeleteApiV1CatalogTracksByTrackIdResponses, DeleteApiV1CatalogTracksByTrackIdErrors, ThrowOnError> {
+        return (options.client ?? this.client).delete<DeleteApiV1CatalogTracksByTrackIdResponses, DeleteApiV1CatalogTracksByTrackIdErrors, ThrowOnError>({ url: '/api/v1/catalog/tracks/{track_id}', ...options });
+    }
+    
+    /**
      * Get Track
      */
     public getTrack<ThrowOnError extends boolean = false>(options: Options<GetApiV1CatalogTracksByTrackIdData, ThrowOnError>): RequestResult<GetApiV1CatalogTracksByTrackIdResponses, GetApiV1CatalogTracksByTrackIdErrors, ThrowOnError> {
@@ -194,10 +279,39 @@ export class V1 extends HeyApiClient {
     }
     
     /**
+     * Update Track
+     */
+    public updateTrack<ThrowOnError extends boolean = false>(options: Options<PatchApiV1CatalogTracksByTrackIdData, ThrowOnError>): RequestResult<PatchApiV1CatalogTracksByTrackIdResponses, PatchApiV1CatalogTracksByTrackIdErrors, ThrowOnError> {
+        return (options.client ?? this.client).patch<PatchApiV1CatalogTracksByTrackIdResponses, PatchApiV1CatalogTracksByTrackIdErrors, ThrowOnError>({
+            url: '/api/v1/catalog/tracks/{track_id}',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
      * Get Track Cover
      */
     public getTrackCover<ThrowOnError extends boolean = false>(options: Options<GetApiV1CatalogTracksByTrackIdCoverData, ThrowOnError>): RequestResult<GetApiV1CatalogTracksByTrackIdCoverResponses, GetApiV1CatalogTracksByTrackIdCoverErrors, ThrowOnError> {
         return (options.client ?? this.client).get<GetApiV1CatalogTracksByTrackIdCoverResponses, GetApiV1CatalogTracksByTrackIdCoverErrors, ThrowOnError>({ url: '/api/v1/catalog/tracks/{track_id}/cover', ...options });
+    }
+    
+    /**
+     * Update Track Cover
+     */
+    public updateTrackCover<ThrowOnError extends boolean = false>(options: Options<PutApiV1CatalogTracksByTrackIdCoverData, ThrowOnError>): RequestResult<PutApiV1CatalogTracksByTrackIdCoverResponses, PutApiV1CatalogTracksByTrackIdCoverErrors, ThrowOnError> {
+        return (options.client ?? this.client).put<PutApiV1CatalogTracksByTrackIdCoverResponses, PutApiV1CatalogTracksByTrackIdCoverErrors, ThrowOnError>({
+            ...formDataBodySerializer,
+            url: '/api/v1/catalog/tracks/{track_id}/cover',
+            ...options,
+            headers: {
+                'Content-Type': null,
+                ...options.headers
+            }
+        });
     }
     
     /**
@@ -212,6 +326,48 @@ export class V1 extends HeyApiClient {
      */
     public getTrackWaveform<ThrowOnError extends boolean = false>(options: Options<GetApiV1CatalogTracksByTrackIdWaveformData, ThrowOnError>): RequestResult<GetApiV1CatalogTracksByTrackIdWaveformResponses, GetApiV1CatalogTracksByTrackIdWaveformErrors, ThrowOnError> {
         return (options.client ?? this.client).get<GetApiV1CatalogTracksByTrackIdWaveformResponses, GetApiV1CatalogTracksByTrackIdWaveformErrors, ThrowOnError>({ url: '/api/v1/catalog/tracks/{track_id}/waveform', ...options });
+    }
+    
+    /**
+     * List Artists
+     */
+    public listArtists<ThrowOnError extends boolean = false>(options?: Options<GetApiV1CatalogArtistsData, ThrowOnError>): RequestResult<GetApiV1CatalogArtistsResponses, GetApiV1CatalogArtistsErrors, ThrowOnError> {
+        return (options?.client ?? this.client).get<GetApiV1CatalogArtistsResponses, GetApiV1CatalogArtistsErrors, ThrowOnError>({ url: '/api/v1/catalog/artists', ...options });
+    }
+    
+    /**
+     * Create Artist
+     */
+    public createArtist<ThrowOnError extends boolean = false>(options: Options<PostApiV1CatalogArtistsData, ThrowOnError>): RequestResult<PostApiV1CatalogArtistsResponses, PostApiV1CatalogArtistsErrors, ThrowOnError> {
+        return (options.client ?? this.client).post<PostApiV1CatalogArtistsResponses, PostApiV1CatalogArtistsErrors, ThrowOnError>({
+            url: '/api/v1/catalog/artists',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
+     * Delete Artist
+     */
+    public deleteArtist<ThrowOnError extends boolean = false>(options: Options<DeleteApiV1CatalogArtistsByArtistIdData, ThrowOnError>): RequestResult<DeleteApiV1CatalogArtistsByArtistIdResponses, DeleteApiV1CatalogArtistsByArtistIdErrors, ThrowOnError> {
+        return (options.client ?? this.client).delete<DeleteApiV1CatalogArtistsByArtistIdResponses, DeleteApiV1CatalogArtistsByArtistIdErrors, ThrowOnError>({ url: '/api/v1/catalog/artists/{artist_id}', ...options });
+    }
+    
+    /**
+     * Get Artist
+     */
+    public getArtist<ThrowOnError extends boolean = false>(options: Options<GetApiV1CatalogArtistsByArtistIdData, ThrowOnError>): RequestResult<GetApiV1CatalogArtistsByArtistIdResponses, GetApiV1CatalogArtistsByArtistIdErrors, ThrowOnError> {
+        return (options.client ?? this.client).get<GetApiV1CatalogArtistsByArtistIdResponses, GetApiV1CatalogArtistsByArtistIdErrors, ThrowOnError>({ url: '/api/v1/catalog/artists/{artist_id}', ...options });
+    }
+    
+    /**
+     * Get Artist Image
+     */
+    public getArtistImage<ThrowOnError extends boolean = false>(options: Options<GetApiV1CatalogArtistsByArtistIdImageData, ThrowOnError>): RequestResult<GetApiV1CatalogArtistsByArtistIdImageResponses, GetApiV1CatalogArtistsByArtistIdImageErrors, ThrowOnError> {
+        return (options.client ?? this.client).get<GetApiV1CatalogArtistsByArtistIdImageResponses, GetApiV1CatalogArtistsByArtistIdImageErrors, ThrowOnError>({ url: '/api/v1/catalog/artists/{artist_id}/image', ...options });
     }
     
     /**

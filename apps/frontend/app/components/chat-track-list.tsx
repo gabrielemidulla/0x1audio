@@ -12,7 +12,8 @@ import {
 import { trackCoverUrl, type TrackOut } from "~/lib/api"
 import { cn } from "~/lib/utils"
 
-const FALLBACK_COLOR = "#64748b"
+import { FALLBACK_COVER_COLOR } from "~/client/constants.gen"
+
 const STACK_THRESHOLD = 3
 
 export function ChatTrackList({ tracks }: { tracks: TrackOut[] }) {
@@ -97,7 +98,7 @@ function VinylStack({ tracks }: { tracks: TrackOut[] }) {
               "absolute top-0 left-0 size-10 overflow-hidden rounded-full ring-2 ring-background shadow-sm",
             )}
             style={{
-              backgroundColor: track.cover_color || FALLBACK_COLOR,
+              backgroundColor: track.cover_color || FALLBACK_COVER_COLOR,
               transform: `translate(${offset}px, ${fromBack * 1}px) rotate(${rotate}deg)`,
               zIndex: index + 1,
             }}

@@ -4,7 +4,8 @@ import { Playlist as PlaylistIcon } from "@phosphor-icons/react"
 import { trackCoverUrl, type PlaylistChatOut } from "~/lib/api"
 import { cn } from "~/lib/utils"
 
-const FALLBACK_COLOR = "#64748b"
+import { FALLBACK_COVER_COLOR } from "~/client/constants.gen"
+
 
 export function ChatPlaylistCard({ playlist }: { playlist: PlaylistChatOut }) {
   const preview = (playlist.preview_tracks ?? []).slice(0, 3)
@@ -67,7 +68,7 @@ function PlaylistArt({
     return (
       <span
         className="relative size-11 shrink-0 overflow-hidden rounded-lg"
-        style={{ backgroundColor: track.cover_color || FALLBACK_COLOR }}
+        style={{ backgroundColor: track.cover_color || FALLBACK_COVER_COLOR }}
       >
         {track.has_cover ? (
           <img
@@ -92,7 +93,7 @@ function PlaylistArt({
               "absolute top-0 left-0 size-10 overflow-hidden rounded-md ring-2 ring-background shadow-sm",
             )}
             style={{
-              backgroundColor: track.cover_color || FALLBACK_COLOR,
+              backgroundColor: track.cover_color || FALLBACK_COVER_COLOR,
               transform: `translate(${offset}px, ${fromBack}px)`,
               zIndex: index + 1,
             }}

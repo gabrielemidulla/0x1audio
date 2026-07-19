@@ -36,6 +36,7 @@ import {
   GraphGradientEdges,
   type GradientEdgeInput,
 } from "~/components/graph-gradient-edges"
+import { ArtistCredits, artistCreditsText } from "~/components/artist-credits"
 import { PaletteRing } from "~/components/graph-palette-ring"
 import {
   Combobox,
@@ -47,9 +48,11 @@ import {
 } from "~/components/ui/combobox"
 import { Button } from "~/components/ui/button"
 import { Label } from "~/components/ui/label"
+import { Spinner } from "~/components/ui/spinner"
+import { FALLBACK_COVER_COLOR } from "~/client/constants.gen"
+import { toast } from "sonner"
 
 const DEFAULT_LIMIT = 24
-const FALLBACK_COLOR = "#64748b"
 const SEED_LIMIT = 20
 const SEED_DEBOUNCE_MS = 300
 // Bundled Figtree (same family as app CSS) — troika needs a .ttf/.woff URL.
@@ -70,12 +73,12 @@ const graphTheme: Theme = {
       activeColor: "#0f172a",
     },
     subLabel: {
-      color: "#64748b",
+      color: FALLBACK_COVER_COLOR,
       stroke: "#fafafa",
       activeColor: "#475569",
     },
   },
-  ring: { fill: "#e2e8f0", activeFill: "#64748b" },
+  ring: { fill: "#e2e8f0", activeFill: FALLBACK_COVER_COLOR },
   edge: {
     fill: "#000000",
     activeFill: "#000000",
@@ -83,15 +86,15 @@ const graphTheme: Theme = {
     selectedOpacity: 0,
     inactiveOpacity: 0,
     label: {
-      color: "#64748b",
+      color: FALLBACK_COVER_COLOR,
       stroke: "#fafafa",
       activeColor: "#0f172a",
       fontSize: 6,
     },
   },
-  arrow: { fill: "#cbd5e1", activeFill: "#64748b" },
+  arrow: { fill: "#cbd5e1", activeFill: FALLBACK_COVER_COLOR },
   lasso: {
-    border: "1px solid #64748b",
+    border: `1px solid ${FALLBACK_COVER_COLOR}`,
     background: "rgba(100, 116, 139, 0.12)",
   },
 }
@@ -135,7 +138,7 @@ const MIN_SEPARATION = MAX_NODE_SIZE * 2 + 160
 // neighbors fall toward the edges instead of zooming out for them.
 const FRAME_RADIUS = RING_RADIUS + RING_SPREAD / 2 + 40
 
-// Deterministic layout (ported from the goodtaste explorer): new neighbors
+// Deterministic layout: new neighbors
 // land on a ring around the node being expanded, ordered by similarity so
 // the closest tracks sit nearest. Already-placed nodes never move, which
 // keeps the map stable across expansions.
@@ -223,7 +226,7 @@ function TrackNode({ node, ...rest }: NodeRendererProps) {
   )
   const showRing = rest.selected || playing
   const titleY = -(rest.size + TITLE_FONT_SIZE + 2)
-  const ringColor = (node.fill as string | undefined) || FALLBACK_COLOR
+  const ringColor = (node.fill as string | undefined) || FALLBACK_COVER_COLOR
 
   return (
     <>
@@ -374,7 +377,6 @@ export default function GraphPage() {
   const [expandingId, setExpandingId] = useState<string | null>(null)
   const [seedOptions, setSeedOptions] = useState<TrackOut[]>([])
   const [seedLoading, setSeedLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [booted, setBooted] = useState(false)
   const [layoutVersion, setLayoutVersion] = useState(0)
 
@@ -429,7 +431,7 @@ export default function GraphPage() {
     })
     if (requestId !== seedRequestRef.current) return
     setSeedLoading(false)
-    if (!apiError && data) setSeedOptions(data)
+    if (!apiError && data) setSeedOptions(data.items)
   }, [])
 
   const scheduleSeedSearch = useCallback(
@@ -521,7 +523,6 @@ export default function GraphPage() {
 
       const generation = ++expandGenerationRef.current
       setExpandingId(trackId)
-      setError(null)
       const { data, error: apiError } = await api.v1.getGraph({
         query: { focus_track_id: trackId, limit },
       })
@@ -529,11 +530,11 @@ export default function GraphPage() {
       setExpandingId(null)
 
       if (apiError || !data) {
-        setError("Could not load neighborhood")
+        toast.error("Could not load neighborhood")
         return
       }
       if (data.nodes.length === 0) {
-        setError("No indexed neighbors for this track")
+        toast.error("No indexed neighbors for this track")
         return
       }
       mergeGraph(data, trackId, replace)
@@ -544,18 +545,17 @@ export default function GraphPage() {
 
   const loadUnfocused = useCallback(async () => {
     setExpandingId("sample")
-    setError(null)
     const { data, error: apiError } = await api.v1.getGraph({
       query: { limit },
     })
     setExpandingId(null)
     if (apiError || !data || data.nodes.length === 0) {
-      setError("Could not load graph")
+      toast.error("Could not load graph")
       return
     }
     const seed = data.nodes[0]?.track.id
     if (!seed) {
-      setError("Could not load graph")
+      toast.error("Could not load graph")
       return
     }
     mergeGraph(data, seed, true)
@@ -585,7 +585,7 @@ export default function GraphPage() {
         const { data } = await api.v1.listTracks({
           query: { status: "ready", limit: 1 },
         })
-        const firstReady = data?.[0]
+        const firstReady = data?.items?.[0]
         if (firstReady) {
           pendingFocusRef.current = firstReady.id
           focusParamRef.current = firstReady.id
@@ -690,9 +690,12 @@ export default function GraphPage() {
       nodeTracks.map((track) => ({
         id: track.id,
         label: track.title,
-        subLabel: track.artist || undefined,
+        subLabel: (() => {
+          const label = artistCreditsText(track)
+          return label === "Unknown artist" ? undefined : label
+        })(),
         size: nodeSize(track.id, expandedIds),
-        fill: track.cover_color || FALLBACK_COLOR,
+        fill: track.cover_color || FALLBACK_COVER_COLOR,
         icon: circularCovers.get(track.id),
         data: { playing: player.track?.id === track.id },
       })),
@@ -733,8 +736,8 @@ export default function GraphPage() {
           source: link.source,
           target: link.target,
           size: edgeSize(link.weight),
-          sourceColor: source?.cover_color || FALLBACK_COLOR,
-          targetColor: target?.cover_color || FALLBACK_COLOR,
+          sourceColor: source?.cover_color || FALLBACK_COVER_COLOR,
+          targetColor: target?.cover_color || FALLBACK_COVER_COLOR,
         }
       })
   }, [links, nodes, hoveredId, selectedId])
@@ -825,9 +828,11 @@ export default function GraphPage() {
           </GraphCanvas>
         ) : (
           <div className="flex h-full items-center justify-center">
-            <p className="text-muted-foreground text-sm">
-              {expandingId ? "Loading neighborhood…" : "No graph yet"}
-            </p>
+            {expandingId ? (
+              <Spinner className="text-muted-foreground size-6" />
+            ) : (
+              <p className="text-muted-foreground text-sm">No graph yet</p>
+            )}
           </div>
         )}
       </div>
@@ -877,9 +882,7 @@ export default function GraphPage() {
                 className="w-full"
                 startAddon={seedTrack ? <TrackSeedArt track={seedTrack} /> : null}
                 subtitle={
-                  seedTrack
-                    ? seedTrack.artist || "Unknown artist"
-                    : null
+                  seedTrack ? artistCreditsText(seedTrack) : null
                 }
               />
               <ComboboxContent className="z-[60]">
@@ -896,7 +899,7 @@ export default function GraphPage() {
                             {track.title}
                           </span>
                           <span className="text-muted-foreground block truncate text-xs">
-                            {track.artist || "Unknown artist"}
+                            <ArtistCredits track={track} className="text-xs" />
                           </span>
                         </span>
                       </span>
@@ -906,8 +909,6 @@ export default function GraphPage() {
               </ComboboxContent>
             </Combobox>
           </div>
-
-          {error ? <p className="text-destructive text-sm">{error}</p> : null}
         </div>
 
         {selected ? (
@@ -915,7 +916,7 @@ export default function GraphPage() {
             <div className="flex gap-3">
               <div
                 className="size-14 shrink-0 overflow-hidden rounded-lg bg-muted"
-                style={{ backgroundColor: selected.cover_color || FALLBACK_COLOR }}
+                style={{ backgroundColor: selected.cover_color || FALLBACK_COVER_COLOR }}
               >
                 {selected.has_cover ? (
                   <img
@@ -928,7 +929,7 @@ export default function GraphPage() {
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium">{selected.title}</p>
                 <p className="text-muted-foreground truncate text-sm">
-                  {selected.artist || "Unknown artist"}
+                  <ArtistCredits track={selected} className="text-sm" />
                 </p>
               </div>
               <Button
@@ -969,7 +970,7 @@ export default function GraphPage() {
                         <span
                           className="size-9 shrink-0 overflow-hidden rounded-md bg-muted"
                           style={{
-                            backgroundColor: track.cover_color || FALLBACK_COLOR,
+                            backgroundColor: track.cover_color || FALLBACK_COVER_COLOR,
                           }}
                         >
                           {track.has_cover ? (
@@ -985,12 +986,7 @@ export default function GraphPage() {
                             {track.title}
                           </span>
                           <span className="text-muted-foreground block truncate text-xs">
-                            {track.artist || "Unknown artist"}
-                            {/*
-                            {percent(_link.weight)} · audio{" "}
-                            {percent(_link.audio_weight)} · profile{" "}
-                            {percent(_link.profile_weight)}
-                            */}
+                            <ArtistCredits track={track} className="text-xs" />
                           </span>
                         </span>
                       </button>
@@ -1005,7 +1001,11 @@ export default function GraphPage() {
         ) : null}
 
         <div
-          className="graph-camera-controls pointer-events-auto absolute right-4 z-20 flex flex-col overflow-hidden rounded-xl border bg-background/95 shadow-sm backdrop-blur"
+          className="graph-camera-controls pointer-events-auto fixed right-4 z-20 flex flex-col overflow-hidden rounded-xl border bg-background/95 shadow-sm backdrop-blur"
+          style={{
+            // Same viewport coords as the fixed player (bottom: 0.75rem, ~52–56px tall).
+            bottom: player.track ? 88 : 16,
+          }}
           role="toolbar"
           aria-label="Graph camera"
         >
@@ -1013,7 +1013,7 @@ export default function GraphPage() {
             type="button"
             variant="ghost"
             size="icon"
-            className="size-9 rounded-none"
+            className="size-9 rounded-none border-0 shadow-none focus-visible:ring-inset"
             aria-label="Zoom in"
             onClick={() => graphRef.current?.zoomIn()}
           >
@@ -1023,7 +1023,7 @@ export default function GraphPage() {
             type="button"
             variant="ghost"
             size="icon"
-            className="size-9 rounded-none border-t border-border"
+            className="size-9 rounded-none border-x-0 border-y border-border shadow-none focus-visible:ring-inset"
             aria-label="Zoom out"
             onClick={() => graphRef.current?.zoomOut()}
           >
@@ -1033,7 +1033,7 @@ export default function GraphPage() {
             type="button"
             variant="ghost"
             size="icon"
-            className="size-9 rounded-none border-t border-border"
+            className="size-9 rounded-none border-0 shadow-none focus-visible:ring-inset"
             aria-label="Focus seed"
             disabled={!focusId}
             onClick={() => {
