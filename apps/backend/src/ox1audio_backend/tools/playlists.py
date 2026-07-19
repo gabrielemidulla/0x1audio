@@ -352,8 +352,8 @@ def register_tools() -> None:
                 "Create a playlist for the current user and optionally seed it with "
                 "track_ids from prior search/similar results. "
                 "Only when the user explicitly asks to create/build/save a playlist or mix. "
-                "color is REQUIRED — you must choose it; never ask the user or list colors. "
-                "If they gave no title, use \"New playlist\". "
+                "color is required — choose it yourself; never ask the user about it. "
+                'If they gave no title, use "New playlist". '
                 "The playlist card is attached automatically."
             ),
             args_model=CreatePlaylistArgs,
