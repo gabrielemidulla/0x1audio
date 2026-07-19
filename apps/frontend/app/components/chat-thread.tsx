@@ -62,9 +62,11 @@ function MessageBlock({
 
   const isUser = message.role === "user"
   const activity = message.activity ?? []
-  const showActivity = Boolean(message.thinking) && activity.length > 0 && !message.content
-  const showThinkingFallback =
-    Boolean(message.thinking) && !message.content && activity.length === 0
+  const toolSteps = activity.filter((step) => step.kind === "tool")
+  const hasContent = Boolean(message.content?.trim())
+  const showThinkingOnly =
+    Boolean(message.thinking) && !hasContent && toolSteps.length === 0
+  const showTools = toolSteps.length > 0
 
   return (
     <div className={cn("flex flex-col gap-2", isUser ? "items-end" : "items-start")}>
@@ -73,23 +75,27 @@ function MessageBlock({
           "max-w-[min(40rem,100%)] text-sm leading-relaxed transition-colors duration-300",
           isUser
             ? "rounded-2xl bg-muted px-4 py-2.5 text-foreground"
-            : "px-1 py-0.5 text-foreground",
+            : "flex flex-col gap-2 px-1 py-0.5 text-foreground",
         )}
       >
-        {showActivity ? (
-          <ChatActivity steps={activity} />
-        ) : showThinkingFallback ? (
+        {showTools ? <ChatActivity steps={toolSteps} /> : null}
+        {showThinkingOnly ? (
           <ChatActivity
-            steps={[{ id: "thinking", kind: "thinking", label: "Thinking" }]}
+            steps={
+              activity.length > 0
+                ? activity
+                : [{ id: "thinking", kind: "thinking", label: "Thinking" }]
+            }
           />
-        ) : (
+        ) : null}
+        {hasContent ? (
           <div className="relative animate-in fade-in duration-300">
             <ChatMarkdown content={message.content} />
             {message.thinking ? (
               <span className="bg-foreground/70 ml-0.5 inline-block h-3.5 w-1.5 animate-pulse align-middle" />
             ) : null}
           </div>
-        )}
+        ) : null}
       </div>
       <ChatPlaylistList playlists={playlists} />
       <ChatTrackList tracks={tracks} />

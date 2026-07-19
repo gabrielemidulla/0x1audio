@@ -3,6 +3,8 @@ import { Link, useLocation, useNavigate, useOutletContext, useParams } from "rea
 
 import {
   activityFromStatus,
+  activityFromToolTraces,
+  finalizeToolActivity,
   type ChatActivityStep,
 } from "~/components/chat-activity"
 import { ChatComposerDock } from "~/components/chat-composer-dock"
@@ -28,6 +30,15 @@ function nowIso(): string {
   return new Date().toISOString()
 }
 
+function threadMessagesFromApi(
+  messages: ChatDetailOut["messages"],
+): ThreadMessage[] {
+  return messages.map((message) => ({
+    ...message,
+    activity: activityFromToolTraces(message.tool_traces),
+  }))
+}
+
 export default function ChatThreadPage() {
   const { chatId } = useParams()
   const location = useLocation()
@@ -38,7 +49,10 @@ export default function ChatThreadPage() {
     locationSeed && chatId && locationSeed.id === chatId ? locationSeed : null
 
   const [messages, setMessages] = useState<ThreadMessage[] | null>(
-    () => initialSeed?.messages ?? null,
+    () =>
+      initialSeed?.messages
+        ? threadMessagesFromApi(initialSeed.messages)
+        : null,
   )
   const [tracks, setTracks] = useState<TrackOut[]>(
     () => initialSeed?.tracks ?? [],
@@ -76,7 +90,7 @@ export default function ChatThreadPage() {
     if (seeded) {
       setMessages((prev) => {
         if (prev?.some((message) => message.thinking)) return prev
-        return seeded.messages
+        return threadMessagesFromApi(seeded.messages)
       })
       setTracks((prev) => (prev.length > 0 ? prev : (seeded.tracks ?? [])))
       setPlaylists((prev) =>
@@ -106,7 +120,7 @@ export default function ChatThreadPage() {
       }
       setMessages((prev) => {
         if (prev?.some((message) => message.thinking)) return prev
-        return result.data.messages
+        return threadMessagesFromApi(result.data.messages)
       })
       setTracks(result.data.tracks ?? [])
       setPlaylists(result.data.playlists ?? [])
@@ -278,20 +292,25 @@ export default function ChatThreadPage() {
               ...current,
               content: current.content + text,
               thinking: true,
-              activity: undefined,
+              activity: finalizeToolActivity(current.activity),
             }))
           },
           onDone: ({ message, tracks: nextTracks, playlists: nextPlaylists, cancelled: wasCancelled }) => {
             if (message) {
-              patchAssistant(localId, {
+              patchAssistant(localId, (current) => ({
                 ...message,
                 thinking: false,
-                activity: undefined,
-              })
+                activity:
+                  activityFromToolTraces(message.tool_traces) ??
+                  finalizeToolActivity(current.activity),
+              }))
             } else if (wasCancelled) {
               setMessages((prev) => prev?.filter((m) => m.id !== localId) ?? null)
             } else {
-              patchAssistant(localId, { thinking: false, activity: undefined })
+              patchAssistant(localId, (current) => ({
+                thinking: false,
+                activity: finalizeToolActivity(current.activity),
+              }))
             }
             mergeTracks(nextTracks)
             mergePlaylists(nextPlaylists)
@@ -310,7 +329,7 @@ export default function ChatThreadPage() {
           return prev.flatMap((message) => {
             if (message.id !== localId) return [message]
             if (!message.content.trim()) return []
-            return [{ ...message, thinking: false, activity: undefined }]
+            return [{ ...message, thinking: false, activity: finalizeToolActivity(message.activity) }]
           })
         })
       } else {
@@ -381,20 +400,25 @@ export default function ChatThreadPage() {
               ...current,
               content: current.content + text,
               thinking: true,
-              activity: undefined,
+              activity: finalizeToolActivity(current.activity),
             }))
           },
           onDone: ({ message: assistant, tracks: nextTracks, playlists: nextPlaylists, cancelled: wasCancelled }) => {
             if (assistant) {
-              patchAssistant(assistantId, {
+              patchAssistant(assistantId, (current) => ({
                 ...assistant,
                 thinking: false,
-                activity: undefined,
-              })
+                activity:
+                  activityFromToolTraces(assistant.tool_traces) ??
+                  finalizeToolActivity(current.activity),
+              }))
             } else if (wasCancelled) {
               setMessages((prev) => prev?.filter((m) => m.id !== assistantId) ?? null)
             } else {
-              patchAssistant(assistantId, { thinking: false, activity: undefined })
+              patchAssistant(assistantId, (current) => ({
+                thinking: false,
+                activity: finalizeToolActivity(current.activity),
+              }))
             }
             mergeTracks(nextTracks)
             mergePlaylists(nextPlaylists)
@@ -418,7 +442,13 @@ export default function ChatThreadPage() {
           return prev.flatMap((message) => {
             if (message.id !== assistantId) return [message]
             if (!message.content.trim()) return []
-            return [{ ...message, thinking: false, activity: undefined }]
+            return [
+              {
+                ...message,
+                thinking: false,
+                activity: finalizeToolActivity(message.activity),
+              },
+            ]
           })
         })
       } else {

@@ -50,6 +50,28 @@ export function toolActivityLabel(name: string): string {
   return TOOL_META[name]?.label ?? `Using ${name.replaceAll("_", " ")}`
 }
 
+export function activityFromToolTraces(
+  traces?: { name: string }[] | null,
+): ChatActivityStep[] | undefined {
+  if (!traces?.length) return undefined
+  return traces.map((trace, index) => ({
+    id: `trace-${index}-${trace.name}`,
+    kind: "tool" as const,
+    name: trace.name,
+    label: toolActivityLabel(trace.name),
+    done: true,
+  }))
+}
+
+export function finalizeToolActivity(
+  steps?: ChatActivityStep[] | null,
+): ChatActivityStep[] | undefined {
+  const tools = (steps ?? [])
+    .filter((step) => step.kind === "tool")
+    .map((step) => (step.done ? step : { ...step, done: true }))
+  return tools.length > 0 ? tools : undefined
+}
+
 export function activityFromStatus(
   phase: "thinking" | "tool" | "cancelled",
   name?: string | null,
@@ -108,7 +130,10 @@ export function ChatActivity({
             style={{ animationDelay: `${Math.min(index, 4) * 40}ms` }}
           >
             <StepIcon step={step} active={active} />
-            <span className={cn(active && "animate-pulse")}>{step.label}…</span>
+            <span className={cn(active && "animate-pulse")}>
+              {step.label}
+              {active ? "…" : ""}
+            </span>
           </li>
         )
       })}
