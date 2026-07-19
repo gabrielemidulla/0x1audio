@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from ox1audio_backend.models import Track
-from ox1audio_backend.services.playlist_colors import PlaylistColor, color_tool_hint, theme_hexes
+from ox1audio_backend.services.playlist_colors import PlaylistColor, theme_hexes
 from ox1audio_backend.services import playlists as playlist_svc
 from ox1audio_backend.tools import registry
 from ox1audio_backend.tools.serialize import track_payloads
@@ -22,11 +22,16 @@ class GetPlaylistArgs(BaseModel):
 
 
 class CreatePlaylistArgs(BaseModel):
-    title: str = Field(min_length=1, max_length=200)
+    title: str = Field(
+        min_length=1,
+        max_length=200,
+        description='Playlist title. If the user did not name one, use "New playlist".',
+    )
     color: PlaylistColor = Field(
+        default=PlaylistColor.INDIGO,
         description=(
-            "Required color enum for create_playlist. Choose from the request yourself; "
-            f"do not ask the user. Options: {color_tool_hint()}"
+            "Mood color for the playlist card. Always set this yourself from the enum; "
+            "never ask the user or mention color names in chat."
         ),
     )
     description: str | None = Field(default=None, max_length=2000)
@@ -40,7 +45,7 @@ class UpdatePlaylistArgs(BaseModel):
     clear_description: bool = False
     color: PlaylistColor | None = Field(
         default=None,
-        description="Optional mood color update (same enum as create_playlist).",
+        description="Optional mood color change. Pick yourself; never ask the user.",
     )
 
 
@@ -345,8 +350,9 @@ def register_tools() -> None:
                 "Create a playlist for the current user and optionally seed it with "
                 "track_ids from prior search/similar results. "
                 "Only when the user explicitly asks to create/build/save a playlist or mix. "
-                "color is REQUIRED — pick a named enum yourself (never ask the user). "
-                "Never invent hex codes. The playlist card is attached automatically."
+                "Always pick color yourself (default indigo is fine) — never ask or list colors. "
+                "If they gave no title, use \"New playlist\". "
+                "The playlist card is attached automatically."
             ),
             args_model=CreatePlaylistArgs,
             handler=create_playlist,
