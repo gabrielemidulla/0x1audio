@@ -25,7 +25,10 @@ class CreatePlaylistArgs(BaseModel):
     title: str | None = Field(
         default=None,
         max_length=200,
-        description='Optional playlist title. If omitted, "New playlist" is used.',
+        description=(
+            "Short playlist title you invent from the conversation (mood, artist, vibe). "
+            "Never ask the user. If you truly have no context, omit and \"New playlist\" is used."
+        ),
     )
     description: str | None = Field(default=None, max_length=2000)
     track_ids: list[str] | None = None
@@ -335,8 +338,9 @@ def register_tools() -> None:
                 "Create a playlist for the current user and optionally seed it with "
                 "track_ids from prior search/similar results. "
                 "Only when the user explicitly asks to create/build/save a playlist or mix. "
-                "Do not ask for a title or color — omit title if unnamed; color is assigned "
-                "automatically. The playlist card is attached automatically."
+                "Call immediately — do not ask for confirmation, title, or color. "
+                "Invent a short title from the conversation; color is assigned automatically. "
+                "The playlist card is attached automatically."
             ),
             args_model=CreatePlaylistArgs,
             handler=create_playlist,
