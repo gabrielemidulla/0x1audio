@@ -13,6 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 class ToolContext:
     db: AsyncSession
     user_id: UUID
+    # Last assistant-attached catalog tracks in this chat (for seeding playlists).
+    recent_track_ids: list[str] = field(default_factory=list)
 
 
 @dataclass

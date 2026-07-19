@@ -97,8 +97,47 @@ async def test_create_playlist_tool_happy_path() -> None:
     assert create_mock.await_args.kwargs["user_id"] == user_id
     assert create_mock.await_args.kwargs["color"] == "light_red"
     assert create_mock.await_args.kwargs["title"] == "Focus"
+    assert create_mock.await_args.kwargs["track_ids"] is None
     db.flush.assert_awaited_once()
     db.commit.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_create_playlist_prefers_recent_track_ids_over_model_args() -> None:
+    user_id = uuid4()
+    playlist = _playlist(user_id=user_id)
+    recent = [str(uuid4()), str(uuid4())]
+    mangled = [str(uuid4())]
+    db = AsyncMock()
+    ctx = ToolContext(db=db, user_id=user_id, recent_track_ids=recent)
+
+    with (
+        patch(
+            "ox1audio_backend.tools.playlists.playlist_svc.existing_track_ids",
+            new=AsyncMock(side_effect=lambda _db, ids: list(ids)),
+        ) as existing_mock,
+        patch(
+            "ox1audio_backend.tools.playlists.playlist_svc.create_playlist",
+            new=AsyncMock(return_value=playlist),
+        ) as create_mock,
+        patch(
+            "ox1audio_backend.tools.playlists.playlist_svc.ordered_track_ids",
+            new=AsyncMock(return_value=[]),
+        ),
+        patch(
+            "ox1audio_backend.tools.playlists._tracks_payload",
+            new=AsyncMock(return_value=([], [])),
+        ),
+    ):
+        result = await create_playlist(
+            ctx,
+            CreatePlaylistArgs(title="Evening", track_ids=mangled),
+        )
+
+    assert "error" not in result.payload
+    existing_mock.assert_awaited_once()
+    assert existing_mock.await_args.args[1] == recent
+    assert create_mock.await_args.kwargs["track_ids"] == recent
 
 
 @pytest.mark.asyncio

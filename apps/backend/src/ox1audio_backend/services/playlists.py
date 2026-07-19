@@ -153,6 +153,25 @@ async def parse_track_ids(raw_ids: list[str]) -> list[uuid.UUID]:
     return parsed
 
 
+async def existing_track_ids(db: AsyncSession, raw_ids: list[str]) -> list[str]:
+    """Keep valid, known track ids in order; skip malformed/unknown/duplicates."""
+    ordered: list[uuid.UUID] = []
+    seen: set[uuid.UUID] = set()
+    for value in raw_ids:
+        try:
+            track_id = uuid.UUID(value)
+        except ValueError:
+            continue
+        if track_id in seen:
+            continue
+        seen.add(track_id)
+        ordered.append(track_id)
+    if not ordered:
+        return []
+    found = set(await db.scalars(select(Track.id).where(Track.id.in_(ordered))))
+    return [str(track_id) for track_id in ordered if track_id in found]
+
+
 async def require_tracks_exist(db: AsyncSession, track_ids: list[uuid.UUID]) -> None:
     if not track_ids:
         return

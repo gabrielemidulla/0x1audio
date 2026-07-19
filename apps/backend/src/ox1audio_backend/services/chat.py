@@ -32,6 +32,18 @@ logger = logging.getLogger(__name__)
 
 DisconnectCheck = Callable[[], Awaitable[bool]]
 
+# Tools whose track_ids become the default seed for create_playlist.
+_TRACK_SEED_TOOLS = frozenset(
+    {
+        "search_vibe",
+        "search_metadata",
+        "similar_tracks",
+        "list_tracks",
+        "get_track",
+        "graph_neighborhood",
+    }
+)
+
 SYSTEM_PROMPT = """\
 You are 0x1audio's catalog librarian. Use tools for facts and actions. Never invent
 tracks, artists, playlists, or actions you did not perform with tools.
@@ -47,10 +59,10 @@ Tools:
 - search_vibe: abstract mood only when there is no named seed track.
 - search_artists / get_artist: artist entity questions.
 - Playlist tools: only when the user explicitly wants a playlist created or edited.
-  create_playlist: call it immediately with track_ids from earlier results when relevant.
-  Prefer attached_track_ids from prior assistant turns when the user says "those" / "these".
-  Invent a short title yourself from the conversation (mood, artist, vibe) — never ask
-  the user to name it. Never mention colors — the system assigns them.
+  create_playlist: call it once immediately. Prefer omitting track_ids so the system
+  seeds from the latest attached tracks in this chat (do not copy long id lists).
+  Invent a short title yourself from the conversation — never ask the user to name it.
+  Never mention colors — the system assigns them.
 
 "Similar songs to [title]" / "tracks like X":
 1) search_metadata once → track_id
@@ -155,6 +167,7 @@ async def run_chat_stream(
     settings: Settings | None = None,
     *,
     is_disconnected: DisconnectCheck | None = None,
+    recent_track_ids: list[str] | None = None,
 ) -> AsyncIterator[ChatStreamEvent]:
     ensure_registered()
     settings = settings or get_settings()
@@ -163,7 +176,11 @@ async def run_chat_stream(
     if messages[-1].role != "user":
         raise ChatError("last message must be from user", status_code=422)
 
-    ctx = ToolContext(db=db, user_id=user_id)
+    ctx = ToolContext(
+        db=db,
+        user_id=user_id,
+        recent_track_ids=list(recent_track_ids or []),
+    )
     tools = build_langchain_tools(ctx)
     model = ChatOllama(
         base_url=settings.ollama_base_url,
@@ -304,6 +321,8 @@ async def run_chat_stream(
                         if track_id not in seen_ids:
                             seen_ids.add(track_id)
                             cited.append(track_id)
+                if name in _TRACK_SEED_TOOLS and result.track_ids:
+                    ctx.recent_track_ids = list(result.track_ids)
                 for playlist_id in result.playlist_ids:
                     if playlist_id not in seen_playlist_ids:
                         seen_playlist_ids.add(playlist_id)
@@ -357,6 +376,8 @@ async def run_chat(
     db: AsyncSession,
     user_id: uuid.UUID,
     settings: Settings | None = None,
+    *,
+    recent_track_ids: list[str] | None = None,
 ) -> ChatResult:
     result: ChatResult | None = None
     async for event in run_chat_stream(
@@ -364,6 +385,7 @@ async def run_chat(
         db,
         user_id,
         settings=settings,
+        recent_track_ids=recent_track_ids,
     ):
         if isinstance(event, ChatResult):
             result = event

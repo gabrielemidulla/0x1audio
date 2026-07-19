@@ -31,7 +31,14 @@ class CreatePlaylistArgs(BaseModel):
         ),
     )
     description: str | None = Field(default=None, max_length=2000)
-    track_ids: list[str] | None = None
+    track_ids: list[str] | None = Field(
+        default=None,
+        description=(
+            "Usually omit. When prior search/similar results are attached in this chat, "
+            "the system seeds the playlist from those automatically. Only pass ids when "
+            "there are no prior attached tracks and you resolved specific ones this turn."
+        ),
+    )
 
 
 class UpdatePlaylistArgs(BaseModel):
@@ -165,6 +172,13 @@ async def get_playlist(ctx: ToolContext, args: GetPlaylistArgs) -> ToolResult:
 async def create_playlist(ctx: ToolContext, args: CreatePlaylistArgs) -> ToolResult:
     title = (args.title or "").strip() or "New playlist"
     color = assign_playlist_color(title)
+    # Prefer server-held attachments — models mangle long UUID lists and then retry.
+    if ctx.recent_track_ids:
+        seed = await playlist_svc.existing_track_ids(ctx.db, ctx.recent_track_ids)
+    elif args.track_ids:
+        seed = await playlist_svc.existing_track_ids(ctx.db, list(args.track_ids))
+    else:
+        seed = []
     try:
         playlist = await playlist_svc.create_playlist(
             ctx.db,
@@ -172,7 +186,7 @@ async def create_playlist(ctx: ToolContext, args: CreatePlaylistArgs) -> ToolRes
             title=title,
             color=color.value,
             description=args.description,
-            track_ids=args.track_ids,
+            track_ids=seed or None,
         )
         await ctx.db.flush()
         ordered = await playlist_svc.ordered_track_ids(ctx.db, playlist.id)
@@ -335,12 +349,12 @@ def register_tools() -> None:
         ToolSpec(
             name="create_playlist",
             description=(
-                "Create a playlist for the current user and optionally seed it with "
-                "track_ids from prior search/similar results. "
+                "Create a playlist for the current user and optionally seed it with tracks. "
                 "Only when the user explicitly asks to create/build/save a playlist or mix. "
-                "Call immediately — do not ask for confirmation, title, or color. "
-                "Invent a short title from the conversation; color is assigned automatically. "
-                "The playlist card is attached automatically."
+                "Call once immediately — do not ask for confirmation, title, or color. "
+                "Invent a short title from the conversation. Prefer omitting track_ids so "
+                "the system seeds from the latest attached tracks in this chat. "
+                "Color is assigned automatically. The playlist card is attached automatically."
             ),
             args_model=CreatePlaylistArgs,
             handler=create_playlist,

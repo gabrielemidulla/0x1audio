@@ -145,22 +145,18 @@ async def _load_history(db: AsyncSession, chat_id: uuid.UUID) -> list[ChatMessag
 
 
 def _history_for_llm(rows: list[ChatMessage]) -> list[ChatMessageIn]:
-    """Build LLM history; include attached ids so follow-ups can reuse them."""
-    out: list[ChatMessageIn] = []
-    for row in rows:
-        if row.role not in ("user", "assistant"):
-            continue
-        content = row.content
-        if row.role == "assistant":
-            parts: list[str] = []
-            if row.track_ids:
-                parts.append(f"attached_track_ids={json.dumps(row.track_ids)}")
-            if row.playlist_ids:
-                parts.append(f"attached_playlist_ids={json.dumps(row.playlist_ids)}")
-            if parts:
-                content = f"{content}\n[{'; '.join(parts)}]"
-        out.append(ChatMessageIn(role=row.role, content=content))  # type: ignore[arg-type]
-    return out
+    return [
+        ChatMessageIn(role=row.role, content=row.content)  # type: ignore[arg-type]
+        for row in rows
+        if row.role in ("user", "assistant")
+    ]
+
+
+def _latest_attached_track_ids(rows: list[ChatMessage]) -> list[str]:
+    for row in reversed(rows):
+        if row.role == "assistant" and row.track_ids:
+            return list(row.track_ids)
+    return []
 
 
 async def _emit_title_if_ready(
@@ -186,6 +182,7 @@ async def _stream_assistant(
     llm_messages: list[ChatMessageIn],
     user_id: uuid.UUID,
     title_task: asyncio.Task[str] | None = None,
+    recent_track_ids: list[str] | None = None,
 ) -> AsyncIterator[str]:
     # Capture before tools flush/commit — accessing expired attrs later raises MissingGreenlet.
     chat_id = chat.id
@@ -197,6 +194,7 @@ async def _stream_assistant(
             db,
             user_id,
             is_disconnected=request.is_disconnected,
+            recent_track_ids=recent_track_ids,
         ):
             title_chunk, title_emitted = await _emit_title_if_ready(
                 title_task, emitted=title_emitted
@@ -378,7 +376,12 @@ async def append_chat_message(
         ChatMessageIn(role="user", content=user_msg.content)
     ]
     try:
-        result = await run_chat(llm_messages, db, user.id)
+        result = await run_chat(
+            llm_messages,
+            db,
+            user.id,
+            recent_track_ids=_latest_attached_track_ids(history),
+        )
     except ChatError as exc:
         await db.rollback()
         raise http_error(exc) from exc
@@ -442,6 +445,7 @@ async def stream_chat_reply(
                     llm_messages=llm_messages,
                     user_id=user_id,
                     title_task=title_task,
+                    recent_track_ids=_latest_attached_track_ids(history),
                 ):
                     yield chunk
             except asyncio.CancelledError:
@@ -506,6 +510,7 @@ async def stream_chat_message(
                     chat=chat,
                     llm_messages=llm_messages,
                     user_id=user_id,
+                    recent_track_ids=_latest_attached_track_ids(history),
                 ):
                     yield chunk
             except asyncio.CancelledError:
