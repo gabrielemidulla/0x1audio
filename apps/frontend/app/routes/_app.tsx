@@ -4,7 +4,6 @@ import { Navigate, Outlet, useLocation } from "react-router"
 import { api, type UserOut } from "~/lib/api"
 import { AppSidebar } from "~/components/app-sidebar"
 import { FloatingTrackPlayer } from "~/components/floating-track-player"
-import { Separator } from "~/components/ui/separator"
 import {
   SidebarInset,
   SidebarProvider,
@@ -61,7 +60,6 @@ export default function AppLayout() {
       <SidebarInset className="min-h-0 flex-1 overflow-hidden">
         <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
         </header>
         <div
           className={cn(
