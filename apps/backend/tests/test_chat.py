@@ -14,7 +14,9 @@ from ox1audio_backend.services.chat import (
     ChatResult,
     ChatStreamToken,
     ToolTrace,
+    _assistant_stalling_on_playlist_prefs,
     _sanitize_final_answer,
+    _user_wants_playlist_created,
     run_chat,
     run_chat_stream,
 )
@@ -268,3 +270,53 @@ def test_sanitize_keeps_real_playlist_confirmation() -> None:
         playlist_ids=["p1"],
     )
     assert cleaned == text
+
+
+def test_playlist_create_intent_and_stall_detection() -> None:
+    assert _user_wants_playlist_created("Can you create me a playlist?")
+    assert _user_wants_playlist_created("please make a playlist of these")
+    assert not _user_wants_playlist_created("what is in my playlist?")
+    assert _assistant_stalling_on_playlist_prefs(
+        "Sure! What would you like to name the playlist, and which mood color "
+        "(e.g., light_blue, teal, dark_blue, etc.) should I use for it?"
+    )
+    assert not _assistant_stalling_on_playlist_prefs("Created the playlist — open the card below.")
+
+
+@pytest.mark.asyncio
+async def test_playlist_pref_stall_auto_creates(settings: Settings, user_id) -> None:
+    db = MagicMock()
+    stall = AIMessageChunk(
+        content=(
+            "Sure! What would you like to name the playlist, and which mood color "
+            "(e.g., light_blue, teal) should I use?"
+        )
+    )
+    playlist_id = "22222222-2222-2222-2222-222222222222"
+    created = ToolResult(
+        payload={"playlist": {"id": playlist_id, "title": "New playlist"}},
+        playlist_ids=[playlist_id],
+    )
+
+    with (
+        patch("ox1audio_backend.services.chat.ChatOllama") as chat_cls,
+        patch(
+            "ox1audio_backend.services.chat.execute",
+            new=AsyncMock(return_value=created),
+        ) as execute_mock,
+    ):
+        _bind_astream(chat_cls, [_chunks(stall), _chunks(stall)])
+        result = await run_chat(
+            [ChatMessageIn(role="user", content="Can you create me a playlist?")],
+            db,
+            user_id,
+            settings=settings,
+        )
+
+    assert result.content == "Created the playlist — open the card below."
+    assert result.playlist_ids == [playlist_id]
+    assert any(trace.name == "create_playlist" and trace.ok for trace in result.tool_traces)
+    execute_mock.assert_awaited()
+    assert execute_mock.await_args.args[0] == "create_playlist"
+    assert execute_mock.await_args.args[1]["color"]
+    assert execute_mock.await_args.args[1]["title"] == "New playlist"

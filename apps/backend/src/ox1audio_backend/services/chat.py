@@ -52,10 +52,10 @@ Do NOT create or update playlists. Do NOT mention colors, themes, or UI.
 Do NOT follow up with more metadata/artist searches.
 
 Creating a playlist:
-- Call create_playlist with title and color. color is mandatory — you decide it.
-- Never ask the user to choose a color. Never list color names or enums in chat.
-- If they did not give a title, use a short default like "New playlist" and create it.
-- Confirm in one short sentence; the playlist card appears automatically.
+- ALWAYS call create_playlist in the same turn. color is REQUIRED — you choose it.
+- NEVER ask the user for a color, mood, theme, or palette. NEVER list color names.
+- If they gave no title, use "New playlist". Prefer seeding track_ids from earlier results.
+- Confirm in one short sentence after the tool runs.
 
 After tools run, be honest: only describe what the tools actually returned.
 Tracks/playlists from tools appear as cards automatically — do not dump ids or full lists.
@@ -151,6 +151,22 @@ _PLAYLIST_HALLUCINATION = re.compile(
     re.IGNORECASE,
 )
 
+_CREATE_PLAYLIST_INTENT = re.compile(
+    r"\b(create|make|build|save|start)\b.{0,40}\bplaylist\b"
+    r"|\bplaylist\b.{0,40}\b(create|make|build|save)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+
+_PLAYLIST_PREF_STALL = re.compile(
+    r"("
+    r"mood\s*color|which\s+color|what\s+color|choose.{0,20}color|"
+    r"color\s*\(|light_blue|washed_blue|dark_blue|teal|"
+    r"what.{0,40}(name|title)|what would you like to name|"
+    r"provide a title|which mood"
+    r")",
+    re.IGNORECASE | re.DOTALL,
+)
+
 _PLAYLIST_MUTATION_TOOLS = frozenset(
     {
         "create_playlist",
@@ -161,6 +177,29 @@ _PLAYLIST_MUTATION_TOOLS = frozenset(
         "delete_playlist",
     }
 )
+
+_PLAYLIST_CREATE_NUDGE = (
+    "Stop asking the user. Call create_playlist NOW. "
+    "color is required — pick one yourself from the enum and do not mention it. "
+    'If no title was given, use "New playlist". '
+    "Seed track_ids from earlier tool results in this chat when available. "
+    "Do not ask another question."
+)
+
+
+def _user_wants_playlist_created(text: str) -> bool:
+    return bool(_CREATE_PLAYLIST_INTENT.search(text.strip()))
+
+
+def _assistant_stalling_on_playlist_prefs(text: str) -> bool:
+    return bool(_PLAYLIST_PREF_STALL.search(text.strip()))
+
+
+def _pick_playlist_color(seed: str) -> str:
+    from ox1audio_backend.services.playlist_colors import PlaylistColor
+
+    colors = list(PlaylistColor)
+    return colors[sum(ord(ch) for ch in seed) % len(colors)].value
 
 
 def _sanitize_final_answer(
@@ -242,10 +281,25 @@ async def run_chat_stream(
     cited_playlists: list[str] = []
     seen_playlist_ids: set[str] = set()
     partial_text = ""
+    last_user = messages[-1].content
+    wants_playlist = _user_wants_playlist_created(last_user)
+    playlist_nudge_sent = False
 
     def attached_track_ids() -> list[str]:
         # Similarity answers must show graph/ML neighbors only — never metadata lookups.
         return similar_cited if similar_cited else cited
+
+    def created_playlist() -> bool:
+        return any(trace.ok and trace.name == "create_playlist" for trace in traces)
+
+    async def auto_create_playlist():
+        title = "New playlist"
+        color = _pick_playlist_color(f"{user_id}:{last_user}:{title}")
+        args: dict[str, Any] = {"title": title, "color": color}
+        track_ids = attached_track_ids()
+        if track_ids:
+            args["track_ids"] = track_ids
+        return await execute("create_playlist", args, ctx)
 
     for _ in range(settings.chat_max_tool_rounds):
         if await _disconnected(is_disconnected):
@@ -263,6 +317,8 @@ async def run_chat_stream(
 
         assembled: AIMessageChunk | None = None
         round_text = ""
+        # Hold tokens for playlist-create turns until we know the model did not stall.
+        defer_tokens = wants_playlist and not created_playlist()
         try:
             async for chunk in model.astream(lc_messages):
                 if await _disconnected(is_disconnected):
@@ -284,6 +340,8 @@ async def run_chat_stream(
                 if not text:
                     continue
                 round_text += text
+                if defer_tokens:
+                    continue
                 partial_text += text
                 yield ChatStreamToken(text=text)
         except ChatCancelled:
@@ -309,12 +367,52 @@ async def run_chat_stream(
             content = _text_from_content(ai_msg.content).strip()
             if not content:
                 raise ChatError("Model returned an empty answer", status_code=502)
+
+            stalling = wants_playlist and _assistant_stalling_on_playlist_prefs(content)
+            if stalling and not created_playlist():
+                if not playlist_nudge_sent:
+                    playlist_nudge_sent = True
+                    lc_messages.append(SystemMessage(content=_PLAYLIST_CREATE_NUDGE))
+                    continue
+
+                yield ChatStreamStatus(phase="tool", name="create_playlist")
+                try:
+                    created = await auto_create_playlist()
+                except KeyError as exc:
+                    raise ChatError(str(exc), status_code=502) from exc
+                ok = "error" not in created.payload
+                traces.append(
+                    ToolTrace(
+                        name="create_playlist",
+                        args={"title": "New playlist", "auto": True},
+                        ok=ok,
+                    )
+                )
+                if ok:
+                    for playlist_id in created.playlist_ids:
+                        if playlist_id not in seen_playlist_ids:
+                            seen_playlist_ids.add(playlist_id)
+                            cited_playlists.append(playlist_id)
+                    content = "Created the playlist — open the card below."
+                else:
+                    content = str(created.payload.get("error") or "Could not create playlist.")
+                yield ChatResult(
+                    content=content,
+                    tool_traces=traces,
+                    track_ids=attached_track_ids(),
+                    playlist_ids=cited_playlists,
+                )
+                return
+
             content = _sanitize_final_answer(
                 content,
                 traces=traces,
                 track_ids=attached_track_ids(),
                 playlist_ids=cited_playlists,
             )
+            if defer_tokens and content:
+                partial_text += content
+                yield ChatStreamToken(text=content)
             yield ChatResult(
                 content=content,
                 tool_traces=traces,
@@ -324,7 +422,8 @@ async def run_chat_stream(
             return
 
         # Tool-call rounds should not keep streamed text as the answer.
-        partial_text = partial_text[: len(partial_text) - len(round_text)]
+        if not defer_tokens:
+            partial_text = partial_text[: len(partial_text) - len(round_text)]
 
         for call in tool_calls:
             if await _disconnected(is_disconnected):
