@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from ox1audio_backend.models import Track
-from ox1audio_backend.services.playlist_colors import PlaylistColor, theme_hexes
+from ox1audio_backend.services.playlist_colors import assign_playlist_color, theme_hexes
 from ox1audio_backend.services import playlists as playlist_svc
 from ox1audio_backend.tools import registry
 from ox1audio_backend.tools.serialize import track_payloads
@@ -22,16 +22,10 @@ class GetPlaylistArgs(BaseModel):
 
 
 class CreatePlaylistArgs(BaseModel):
-    title: str = Field(
-        min_length=1,
+    title: str | None = Field(
+        default=None,
         max_length=200,
-        description='Playlist title. If the user did not name one, use "New playlist".',
-    )
-    color: PlaylistColor = Field(
-        description=(
-            "REQUIRED. You (the model) must choose the mood color yourself from the enum. "
-            "Never ask the user to pick a color. Never list color names in chat."
-        ),
+        description='Optional playlist title. If omitted, "New playlist" is used.',
     )
     description: str | None = Field(default=None, max_length=2000)
     track_ids: list[str] | None = None
@@ -42,13 +36,6 @@ class UpdatePlaylistArgs(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=200)
     description: str | None = Field(default=None, max_length=2000)
     clear_description: bool = False
-    color: PlaylistColor | None = Field(
-        default=None,
-        description=(
-            "Optional mood color change. You choose it yourself from the enum; "
-            "never ask the user or list colors."
-        ),
-    )
 
 
 class PlaylistIdArgs(BaseModel):
@@ -173,12 +160,14 @@ async def get_playlist(ctx: ToolContext, args: GetPlaylistArgs) -> ToolResult:
 
 
 async def create_playlist(ctx: ToolContext, args: CreatePlaylistArgs) -> ToolResult:
+    title = (args.title or "").strip() or "New playlist"
+    color = assign_playlist_color(title)
     try:
         playlist = await playlist_svc.create_playlist(
             ctx.db,
             user_id=ctx.user_id,
-            title=args.title,
-            color=args.color.value,
+            title=title,
+            color=color.value,
             description=args.description,
             track_ids=args.track_ids,
         )
@@ -199,12 +188,7 @@ async def create_playlist(ctx: ToolContext, args: CreatePlaylistArgs) -> ToolRes
 
 
 async def update_playlist(ctx: ToolContext, args: UpdatePlaylistArgs) -> ToolResult:
-    if (
-        args.title is None
-        and args.description is None
-        and not args.clear_description
-        and args.color is None
-    ):
+    if args.title is None and args.description is None and not args.clear_description:
         return ToolResult.error("No updates provided")
     try:
         playlist_id = _parse_playlist_id(args.playlist_id)
@@ -217,7 +201,6 @@ async def update_playlist(ctx: ToolContext, args: UpdatePlaylistArgs) -> ToolRes
             title=args.title,
             description=args.description,
             clear_description=args.clear_description,
-            color=args.color.value if args.color is not None else None,
         )
         await ctx.db.commit()
         ordered = await playlist_svc.ordered_track_ids(ctx.db, playlist.id)
@@ -352,9 +335,8 @@ def register_tools() -> None:
                 "Create a playlist for the current user and optionally seed it with "
                 "track_ids from prior search/similar results. "
                 "Only when the user explicitly asks to create/build/save a playlist or mix. "
-                "color is required — choose it yourself; never ask the user about it. "
-                'If they gave no title, use "New playlist". '
-                "The playlist card is attached automatically."
+                "Do not ask for a title or color — omit title if unnamed; color is assigned "
+                "automatically. The playlist card is attached automatically."
             ),
             args_model=CreatePlaylistArgs,
             handler=create_playlist,
@@ -364,8 +346,8 @@ def register_tools() -> None:
         ToolSpec(
             name="update_playlist",
             description=(
-                "Rename a playlist, update/clear its description, and/or change its "
-                "mood color (optional)."
+                "Rename a playlist or update/clear its description. "
+                "Color is not changed via this tool — users set it in the UI."
             ),
             args_model=UpdatePlaylistArgs,
             handler=update_playlist,

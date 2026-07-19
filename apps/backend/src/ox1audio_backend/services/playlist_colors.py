@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from enum import StrEnum
 from typing import TypedDict
 
@@ -219,9 +220,8 @@ def theme_hexes(color: str | PlaylistColor | None) -> list[str]:
     return list(PLAYLIST_COLOR_HEX[key])
 
 
-def color_tool_hint() -> str:
-    """Compact enum list for LLM tool descriptions."""
-    parts = [
-        f"{color.value} ({PLAYLIST_COLOR_HINTS[color]})" for color in PlaylistColor
-    ]
-    return "; ".join(parts)
+def assign_playlist_color(seed: str) -> PlaylistColor:
+    """Stable mood color from a seed (title, etc.) — used when chat creates playlists."""
+    colors = list(PlaylistColor)
+    digest = hashlib.sha256(seed.encode("utf-8")).digest()
+    return colors[int.from_bytes(digest[:4], "big") % len(colors)]

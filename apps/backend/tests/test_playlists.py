@@ -85,7 +85,6 @@ async def test_create_playlist_tool_happy_path() -> None:
             ctx,
             CreatePlaylistArgs(
                 title="Focus",
-                color="dark_blue",
                 description=None,
                 track_ids=None,
             ),
@@ -96,6 +95,8 @@ async def test_create_playlist_tool_happy_path() -> None:
     assert result.payload["playlist"]["title"] == "Focus"
     create_mock.assert_awaited_once()
     assert create_mock.await_args.kwargs["user_id"] == user_id
+    assert create_mock.await_args.kwargs["color"] == "light_red"
+    assert create_mock.await_args.kwargs["title"] == "Focus"
     db.commit.assert_awaited_once()
 
 
