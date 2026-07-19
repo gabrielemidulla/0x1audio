@@ -28,10 +28,9 @@ class CreatePlaylistArgs(BaseModel):
         description='Playlist title. If the user did not name one, use "New playlist".',
     )
     color: PlaylistColor = Field(
-        default=PlaylistColor.INDIGO,
         description=(
-            "Mood color for the playlist card. Always set this yourself from the enum; "
-            "never ask the user or mention color names in chat."
+            "REQUIRED. You (the model) must choose the mood color yourself from the enum. "
+            "Never ask the user to pick a color. Never list color names in chat."
         ),
     )
     description: str | None = Field(default=None, max_length=2000)
@@ -45,7 +44,10 @@ class UpdatePlaylistArgs(BaseModel):
     clear_description: bool = False
     color: PlaylistColor | None = Field(
         default=None,
-        description="Optional mood color change. Pick yourself; never ask the user.",
+        description=(
+            "Optional mood color change. You choose it yourself from the enum; "
+            "never ask the user or list colors."
+        ),
     )
 
 
@@ -350,7 +352,7 @@ def register_tools() -> None:
                 "Create a playlist for the current user and optionally seed it with "
                 "track_ids from prior search/similar results. "
                 "Only when the user explicitly asks to create/build/save a playlist or mix. "
-                "Always pick color yourself (default indigo is fine) — never ask or list colors. "
+                "color is REQUIRED — you must choose it; never ask the user or list colors. "
                 "If they gave no title, use \"New playlist\". "
                 "The playlist card is attached automatically."
             ),
