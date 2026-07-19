@@ -145,11 +145,22 @@ async def _load_history(db: AsyncSession, chat_id: uuid.UUID) -> list[ChatMessag
 
 
 def _history_for_llm(rows: list[ChatMessage]) -> list[ChatMessageIn]:
-    return [
-        ChatMessageIn(role=row.role, content=row.content)  # type: ignore[arg-type]
-        for row in rows
-        if row.role in ("user", "assistant")
-    ]
+    """Build LLM history; include attached ids so follow-ups can reuse them."""
+    out: list[ChatMessageIn] = []
+    for row in rows:
+        if row.role not in ("user", "assistant"):
+            continue
+        content = row.content
+        if row.role == "assistant":
+            parts: list[str] = []
+            if row.track_ids:
+                parts.append(f"attached_track_ids={json.dumps(row.track_ids)}")
+            if row.playlist_ids:
+                parts.append(f"attached_playlist_ids={json.dumps(row.playlist_ids)}")
+            if parts:
+                content = f"{content}\n[{'; '.join(parts)}]"
+        out.append(ChatMessageIn(role=row.role, content=content))  # type: ignore[arg-type]
+    return out
 
 
 async def _emit_title_if_ready(
@@ -176,6 +187,8 @@ async def _stream_assistant(
     user_id: uuid.UUID,
     title_task: asyncio.Task[str] | None = None,
 ) -> AsyncIterator[str]:
+    # Capture before tools flush/commit — accessing expired attrs later raises MissingGreenlet.
+    chat_id = chat.id
     final: ChatResult | None = None
     title_emitted = False
     try:
@@ -240,7 +253,7 @@ async def _stream_assistant(
         )
         return
 
-    assistant = _assistant_row(chat.id, final)
+    assistant = _assistant_row(chat_id, final)
     db.add(assistant)
     chat.updated_at = datetime.now(timezone.utc)
     await db.commit()

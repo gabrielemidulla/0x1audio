@@ -97,7 +97,8 @@ async def test_create_playlist_tool_happy_path() -> None:
     assert create_mock.await_args.kwargs["user_id"] == user_id
     assert create_mock.await_args.kwargs["color"] == "light_red"
     assert create_mock.await_args.kwargs["title"] == "Focus"
-    db.commit.assert_awaited_once()
+    db.flush.assert_awaited_once()
+    db.commit.assert_not_called()
 
 
 @pytest.mark.asyncio

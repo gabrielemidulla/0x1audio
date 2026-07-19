@@ -174,7 +174,7 @@ async def create_playlist(ctx: ToolContext, args: CreatePlaylistArgs) -> ToolRes
             description=args.description,
             track_ids=args.track_ids,
         )
-        await ctx.db.commit()
+        await ctx.db.flush()
         ordered = await playlist_svc.ordered_track_ids(ctx.db, playlist.id)
         tracks, track_ids = await _tracks_payload(ctx, ordered)
         return _playlist_tool_result(
@@ -205,7 +205,7 @@ async def update_playlist(ctx: ToolContext, args: UpdatePlaylistArgs) -> ToolRes
             description=args.description,
             clear_description=args.clear_description,
         )
-        await ctx.db.commit()
+        await ctx.db.flush()
         ordered = await playlist_svc.ordered_track_ids(ctx.db, playlist.id)
         return _playlist_tool_result(
             playlist_id=playlist.id,
@@ -227,7 +227,7 @@ async def delete_playlist(ctx: ToolContext, args: PlaylistIdArgs) -> ToolResult:
         )
         title = playlist.title
         await playlist_svc.delete_playlist(ctx.db, playlist)
-        await ctx.db.commit()
+        await ctx.db.flush()
         return ToolResult(
             payload={"deleted": True, "id": str(playlist_id), "title": title}
         )
@@ -248,7 +248,7 @@ async def add_tracks_to_playlist(ctx: ToolContext, args: AddTracksArgs) -> ToolR
             args.track_ids,
             position=args.position,
         )
-        await ctx.db.commit()
+        await ctx.db.flush()
         tracks, track_ids = await _tracks_payload(ctx, ordered)
         return _playlist_tool_result(
             playlist_id=playlist.id,
@@ -273,7 +273,7 @@ async def remove_tracks_from_playlist(
             ctx.db, playlist_id, ctx.user_id
         )
         ordered = await playlist_svc.remove_tracks(ctx.db, playlist, args.track_ids)
-        await ctx.db.commit()
+        await ctx.db.flush()
         tracks, track_ids = await _tracks_payload(ctx, ordered)
         return _playlist_tool_result(
             playlist_id=playlist.id,
@@ -295,7 +295,7 @@ async def reorder_playlist(ctx: ToolContext, args: ReorderTracksArgs) -> ToolRes
             ctx.db, playlist_id, ctx.user_id
         )
         ordered = await playlist_svc.reorder_tracks(ctx.db, playlist, args.track_ids)
-        await ctx.db.commit()
+        await ctx.db.flush()
         return _playlist_tool_result(
             playlist_id=playlist.id,
             title=playlist.title,
