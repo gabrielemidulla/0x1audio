@@ -18,6 +18,17 @@ docker compose -f compose.yaml -f compose.dev.yaml up --build
 
 Requires NVIDIA Container Toolkit for the ML worker. Architecture: [apps/ml-worker/README.md](apps/ml-worker/README.md).
 
+Contributing: [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Roadmap
+
+- [ ] **MCP server**
+- [ ] **Broader GPU / accelerator support**
+  - [ ] Integrated GPUs (Intel and similar)
+  - [ ] AMD ROCm
+  - [ ] Apple Silicon
+- [ ] **AWS hosting**
+
 ## Use cases
 
 ### Home
