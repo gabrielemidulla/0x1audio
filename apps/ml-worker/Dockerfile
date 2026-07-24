@@ -24,10 +24,10 @@ COPY src ./src
 COPY scripts ./scripts
 COPY data ./data
 
-# Lockfile install; reuse CUDA torch from the base image via system site-packages.
+# Lockfile install; reuse CUDA torch/torchaudio from the base image via system site-packages.
 RUN uv venv /app/.venv --system-site-packages \
-  && uv sync --frozen --no-dev --no-install-package torch \
-  && python -c "import torch; import ox1audio_ml_worker"
+  && uv sync --frozen --no-dev --no-install-package torch --no-install-package torchaudio \
+  && python -c "import torch; import torchaudio; import ox1audio_ml_worker"
 
 EXPOSE 50051
 CMD ["python", "-m", "ox1audio_ml_worker"]

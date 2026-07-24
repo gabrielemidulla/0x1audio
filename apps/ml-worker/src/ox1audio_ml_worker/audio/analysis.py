@@ -8,15 +8,17 @@ from typing import Any
 import librosa
 import numpy as np
 
-from ox1audio_ml_worker.audio.essentia import analyze_rich_audio
+from ox1audio_ml_worker.audio.tagging import analyze_rich_audio
 
-SAMPLE_RATE = 24_000
+# LAION-CLAP larger_clap_music feature extractor expects 48 kHz mono.
+SAMPLE_RATE = 48_000
 SEGMENT_SECONDS = 30
 MAX_SEGMENTS = 12
+# Matches ClapFeatureExtractor max_length_s / nb_max_samples (10 s @ 48 kHz).
 CLIP_SECONDS = 10
 MAX_CLIPS_PER_SEGMENT = 6
 WAVEFORM_SAMPLES = 240
-# Essentia Jamendo "voice" score below this must be considered instrumental.
+# Short-chunk CNN "voice" score below this must be considered instrumental.
 VOCALNESS_INSTRUMENTAL_MAX = 0.12
 
 
@@ -60,7 +62,12 @@ def analyze_track(
         "clip_segment_indices": clip_segment_indices,
     }
 
-    rich = analyze_rich_audio(audio_path, segments)
+    rich = analyze_rich_audio(
+        audio_path,
+        segments,
+        samples_48k=samples,
+        sample_rate=SAMPLE_RATE,
+    )
     analysis["genre"] = ranked_genre_label(rich.get("genre_scores", {})) or genre
     analysis["mood"] = ranked_mood_labels(rich.get("mood_scores", {})) or mood
     analysis["tags"] = rich.get("tags", tags)

@@ -1,0 +1,40 @@
+{
+  "k": 6,
+  "target": "ox1audio-ml-worker-1:50051",
+  "results": [
+    {
+      "id": "calm-ambient",
+      "query": "calm ambient pad",
+      "expect_none": false,
+      "relevant_count": 777,
+      "returned": [
+        "25de2eef-bcea-41f7-abc1-681a08b65cd8",
+        "1f823a68-f489-45e0-92a1-586f2da9ce7a",
+        "a4b9dc92-9e83-4be1-94d7-8421b1e307a3",
+        "426b5d21-fa2b-476d-b82b-27c66802bc5c",
+        "c6bbf715-6936-4805-a61d-6c5a20d85f6d",
+        "5f2e4ed5-973b-4a23-a4f9-003238fde0e8"
+      ],
+      "precision_at_k": 1.0,
+      "recall_at_k": 0.0077,
+      "mrr": 1.0
+    },
+    {
+      "id": "absent-concept",
+      "query": "opera aria",
+      "expect_none": true,
+      "relevant_count": 0,
+      "returned": [
+        "5bf2ca0b-6dde-4b8f-ae7b-c263ed6b947f",
+        "54d46404-7920-470b-9eee-cb2b07afc403",
+        "dc173d45-d269-4ea9-9196-135520755a03",
+        "b64bf2a8-9564-4985-b6d1-5036491d0c50",
+        "953d64c8-bf9a-4a3e-be19-4d8e1276dc32",
+        "9266e6ee-2c12-4cf9-aaf1-ac958e3c5922"
+      ],
+      "precision_at_k": 0.0,
+      "recall_at_k": 1.0,
+      "mrr": 0.0
+    }
+  ]
+}

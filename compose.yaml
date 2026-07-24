@@ -6,7 +6,7 @@
 # Host port publishes live in compose.dev.yaml / compose.prod.yaml so
 # bind address (LAN vs localhost) stays overlay-specific.
 # ml-worker always expects an NVIDIA GPU (Container Toolkit required).
-# Ollama runs CPU-only (OLLAMA_NUM_GPU=0) so MuQ keeps the GPU.
+# Ollama runs CPU-only (OLLAMA_NUM_GPU=0) so CLAP keeps the GPU.
 
 services:
   postgres:

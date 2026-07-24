@@ -24,41 +24,41 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  Waveform --> MuQ[MuQ-MuLan-large]
-  Waveform --> Essentia
-  Essentia --> Prose[prose + tags]
+  Waveform --> CLAP[laion/larger_clap_music]
+  Waveform --> Tagger[Short-chunk CNN Jamendo]
+  Tagger --> Prose[prose + tags]
   Prose --> MiniLM[all-MiniLM-L6-v2]
-  MuQ --> Audio["audio 512-d"]
+  CLAP --> Audio["audio 512-d"]
   MiniLM --> Profile["profile 384-d"]
 ```
 
-| Model | Dim | Job |
-|-------|-----|-----|
-| MuQ-MuLan-large | 512 | joint audio ↔ text |
-| all-MiniLM-L6-v2 | 384 | language profile |
-| Essentia (Discogs EffNet + Jamendo heads) | — | tags / scores for profile text |
-| librosa | — | BPM, energy, waveform |
+| Model | License | Dim | Job |
+|-------|---------|-----|-----|
+| `laion/larger_clap_music` | Apache 2.0 (weights) | 512 | joint audio ↔ text |
+| `all-MiniLM-L6-v2` | Apache 2.0 | 384 | language profile |
+| Short-chunk CNN + Res (Jamendo top-50) | MIT | — | genre / instrument / mood tags |
+| librosa | ISC | — | BPM, energy, waveform |
 
-MuQ at 24 kHz mono; Essentia at 16 kHz. Collection names include model version — recipe changes need a reindex.
+CLAP at 48 kHz mono (10 s clips). Short-chunk CNN at 16 kHz with 3.69 s chunks. Collection names include model + tagger version — recipe changes need a reindex (old collections stay for rollback).
 
 ## Analyze
 
 ```mermaid
 flowchart TB
-  DL[download ≤ 500 MB] --> Load[mono 24 kHz]
+  DL[download ≤ 500 MB] --> Load[mono 48 kHz]
   Load --> Seg[segments ≤ 12]
   Seg --> Clips[10 s clips]
-  Load --> Essentia
+  Load --> Tagger[Short-chunk CNN]
   Load --> DSP[librosa]
-  Clips --> MuQ
-  MuQ --> SegVec[mean → segment L2]
+  Clips --> CLAP
+  CLAP --> SegVec[mean → segment L2]
   SegVec --> TrackVec[mean → track L2]
-  Essentia --> MiniLM
+  Tagger --> MiniLM
   TrackVec --> QA[Qdrant audio]
   SegVec --> QA
   MiniLM --> QP[Qdrant profile]
   DSP --> JSON[analysis JSON]
-  Essentia --> JSON
+  Tagger --> JSON
 ```
 
 Aggregation: `clip → mean → segment → mean → track` (all L2). Profile is a blend of sentence + tag embeddings (`config.yaml`). Soft `search_tags` on the profile payload for ranking boost — never a hard lexical gate.
@@ -83,7 +83,7 @@ Defaults live in [`config.yaml`](./config.yaml) (`audio_search_weight` 0.45 / `p
 
 ## Graph
 
-Similarity neighborhood only: nearby in MuQ and/or MiniLM, then pairwise edges.
+Similarity neighborhood only: nearby in CLAP and/or MiniLM, then pairwise edges.
 
 ```mermaid
 flowchart TB
@@ -103,7 +103,8 @@ UI draws on blended `weight`. `audio_weight` / `profile_weight` stay on the payl
 CUDA required (`torch.cuda.is_available()`). NVIDIA Container Toolkit on the host.
 
 ```bash
-uv run python scripts/download_essentia_models.py
+uv run python scripts/download_short_chunk_model.py
+# Ensure laion/larger_clap_music is in HF_HOME (Compose volume ml_worker_hf)
 docker compose -f compose.yaml -f compose.dev.yaml up -d --build ml-worker backend-worker
 ```
 

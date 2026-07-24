@@ -22,9 +22,11 @@ class VectorStore:
     def __init__(self, provider: ModelProvider) -> None:
         self.provider = provider
         self.collection = collection_name(provider.name, provider.version)
+        # Profile text depends on the tagger taxonomy; version the collection with
+        # both the language model and the tagger so swaps do not mix eras.
         self.profile_collection = collection_name(
             "language-profile",
-            provider.language_model_id,
+            f"{provider.language_model_id}__{provider.tagger_name}",
         )
         self.client = qdrant_client()
         self.ensure_collections()

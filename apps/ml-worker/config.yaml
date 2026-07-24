@@ -3,10 +3,10 @@
 # Deploy/secrets: env.
 
 # Models
-muq_model_id: OpenMuQ/MuQ-MuLan-large
+clap_model_id: laion/larger_clap_music
 language_model_id: sentence-transformers/all-MiniLM-L6-v2
 language_vector_size: 384
-# Essentia heads default to <ml-worker>/data/models/essentia (override in config.local.yaml)
+# Short-chunk CNN weights default to <ml-worker>/data/models/short_chunk/best_model.pth
 
 # Qdrant client (URL / API key stay in env)
 qdrant_timeout_seconds: 30

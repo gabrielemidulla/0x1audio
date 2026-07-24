@@ -13,7 +13,9 @@ from pydantic_settings import (
 )
 
 _ML_WORKER_ROOT = Path(__file__).resolve().parents[2]
-_DEFAULT_ESSENTIA = _ML_WORKER_ROOT / "data" / "models" / "essentia"
+_DEFAULT_TAGGER_WEIGHTS = (
+    _ML_WORKER_ROOT / "data" / "models" / "short_chunk" / "best_model.pth"
+)
 _DEFAULT_CONFIG = _ML_WORKER_ROOT / "config.yaml"
 
 
@@ -40,10 +42,10 @@ class Settings(BaseSettings):
     qdrant_timeout_seconds: float = 30.0
 
     # Models / paths (yaml; env can override)
-    muq_model_id: str = "OpenMuQ/MuQ-MuLan-large"
+    clap_model_id: str = "laion/larger_clap_music"
     language_model_id: str = "sentence-transformers/all-MiniLM-L6-v2"
     language_vector_size: int = 384
-    essentia_models_dir: Path = Field(default=_DEFAULT_ESSENTIA)
+    tagger_weights_path: Path = Field(default=_DEFAULT_TAGGER_WEIGHTS)
 
     # Search / profile tunables (yaml)
     audio_search_weight: float = 0.45

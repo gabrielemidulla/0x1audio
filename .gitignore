@@ -56,10 +56,12 @@ proto/.venv/
 .cache/
 models/
 *.pt
+*.pth
 *.onnx
 *.bin
 *.pb
 apps/ml-worker/data/models/**/*.pb
+apps/ml-worker/data/models/**/*.pth
 
 # Logs & temp
 *.log
@@ -73,3 +75,4 @@ pw.env
 
 # Personal
 resume.tex
+backups/
