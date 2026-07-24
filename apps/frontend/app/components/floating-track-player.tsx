@@ -1,7 +1,8 @@
 import {
-  CaretDown,
+  CornersOut,
   Graph,
   Pause,
+  PictureInPicture,
   Play,
   SpeakerHigh,
   X,
@@ -301,13 +302,86 @@ export function FloatingTrackPlayer() {
   }, [palette, player.volume])
 
   const ghostIconClass = cn(
-    "size-8",
+    "size-8 focus-visible:shadow-none",
     palette.onDark
-      ? "text-white/70 hover:bg-white/10 hover:text-white"
-      : "text-slate-950/70 hover:bg-black/10 hover:text-slate-950",
+      ? [
+          "text-white/70 hover:bg-white/10 hover:text-white",
+          "active:!bg-white/15 focus-visible:!bg-white/10",
+        ].join(" ")
+      : [
+          "text-slate-950/70 hover:bg-black/10 hover:text-slate-950",
+          "active:!bg-black/15 focus-visible:!bg-black/10",
+        ].join(" "),
   )
 
   if (!track) return null
+
+  const actionIcons = (
+    <TooltipProvider delay={500}>
+      <div className="flex shrink-0 items-center gap-0.5">
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className={ghostIconClass}
+                aria-label="Go to the graph"
+                render={<Link to={`/graph?focus=${track.id}`} />}
+              />
+            }
+          >
+            <Graph className="size-4" />
+          </TooltipTrigger>
+          <TooltipContent side="top">Go to the graph</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className={cn("hidden md:inline-flex", ghostIconClass)}
+                aria-label={mini ? "Hide mini player" : "Show mini player"}
+                aria-pressed={mini}
+                onClick={() => setMini((value) => !value)}
+              />
+            }
+          >
+            {mini ? (
+              <CornersOut className="size-4" weight="regular" />
+            ) : (
+              <PictureInPicture className="size-4" weight="regular" />
+            )}
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            {mini ? "Hide mini player" : "Show mini player"}
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className={ghostIconClass}
+                aria-label="Close player"
+                onClick={() => closePlayer()}
+              />
+            }
+          >
+            <X className="size-4" />
+          </TooltipTrigger>
+          <TooltipContent side="top">Close player</TooltipContent>
+        </Tooltip>
+      </div>
+    </TooltipProvider>
+  )
 
   return (
     <div
@@ -332,8 +406,20 @@ export function FloatingTrackPlayer() {
         <span className="player-gloss-sheen" />
       </div>
 
-      <div className="relative z-10 flex flex-col gap-2 px-2.5 py-1.5 sm:gap-3 sm:px-3 sm:py-2 lg:flex-row lg:items-center">
-        <div className="flex min-w-0 flex-1 items-center gap-3 lg:max-w-md lg:flex-none lg:w-80">
+      <div
+        className={cn(
+          "relative z-10 px-2.5 py-1.5 sm:px-3 sm:py-2",
+          mini
+            ? "flex items-center gap-2"
+            : "flex flex-col gap-2 sm:gap-3 lg:flex-row lg:items-center",
+        )}
+      >
+        <div
+          className={cn(
+            "flex min-w-0 items-center gap-3",
+            mini ? "min-w-0 flex-1" : "flex-1 lg:max-w-md lg:w-80 lg:flex-none",
+          )}
+        >
           <div
             className="size-11 shrink-0 overflow-hidden rounded-xl sm:size-12"
             style={{
@@ -367,74 +453,16 @@ export function FloatingTrackPlayer() {
             </MarqueeText>
           </div>
 
-          <TooltipProvider delay={500}>
-            <div className="flex shrink-0 items-center gap-0.5">
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className={ghostIconClass}
-                      aria-label="Go to the graph"
-                      render={<Link to={`/graph?focus=${track.id}`} />}
-                    />
-                  }
-                >
-                  <Graph className="size-4" />
-                </TooltipTrigger>
-                <TooltipContent side="top">Go to the graph</TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className={cn("hidden md:inline-flex", ghostIconClass)}
-                      aria-label={
-                        mini ? "Hide mini player" : "Show mini player"
-                      }
-                      aria-pressed={mini}
-                      onClick={() => setMini((value) => !value)}
-                    />
-                  }
-                >
-                  <CaretDown className={cn("size-4", mini && "rotate-180")} />
-                </TooltipTrigger>
-                <TooltipContent side="top">
-                  {mini ? "Hide mini player" : "Show mini player"}
-                </TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className={ghostIconClass}
-                      aria-label="Close player"
-                      onClick={() => closePlayer()}
-                    />
-                  }
-                >
-                  <X className="size-4" />
-                </TooltipTrigger>
-                <TooltipContent side="top">Close player</TooltipContent>
-              </Tooltip>
-            </div>
-          </TooltipProvider>
+          {/* Phone full player: keep icons on the title row, pinned right. */}
+          {!mini ? (
+            <div className="ml-auto flex shrink-0 lg:hidden">{actionIcons}</div>
+          ) : null}
         </div>
 
         <div
           className={cn(
-            "flex min-w-0 items-center gap-2.5",
-            mini ? "flex-none" : "flex-1",
+            "flex items-center gap-2.5",
+            mini ? "shrink-0" : "min-w-0 flex-1",
           )}
         >
           <Button
@@ -443,6 +471,7 @@ export function FloatingTrackPlayer() {
             className={cn(
               "size-9 shrink-0 rounded-full border-0 shadow-none after:hidden sm:size-10",
               "hover:shadow-none focus-visible:shadow-none active:shadow-none",
+              mini && "ml-1",
               palette.onDark
                 ? "bg-white/20 text-white hover:bg-white/30"
                 : "bg-black/15 text-slate-950 hover:bg-black/25",
@@ -501,25 +530,35 @@ export function FloatingTrackPlayer() {
           ) : null}
         </div>
 
-        {!mini ? (
-          <label
-            className="hidden shrink-0 items-center gap-2 px-1 md:flex"
-            style={{ color: "var(--player-fg-muted)" }}
-          >
-            <SpeakerHigh className="size-4" aria-hidden />
-            <span className="sr-only">Volume</span>
-            <input
-              className="music-player-volume music-player-volume-adaptive w-24"
-              type="range"
-              min={0}
-              max={1}
-              step={0.01}
-              value={player.volume}
-              onChange={(event) => setVolume(Number(event.target.value))}
-              aria-label="Volume"
-            />
-          </label>
-        ) : null}
+        {/* Desktop full + mini: actions on the trailing edge. */}
+        <div
+          className={cn(
+            "flex shrink-0 items-center justify-end gap-1.5",
+            mini ? "ml-0.5" : "hidden lg:flex",
+          )}
+        >
+          {!mini ? (
+            <label
+              className="hidden items-center gap-2 px-1 md:flex"
+              style={{ color: "var(--player-fg-muted)" }}
+            >
+              <SpeakerHigh className="size-4" aria-hidden />
+              <span className="sr-only">Volume</span>
+              <input
+                className="music-player-volume music-player-volume-adaptive w-24"
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={player.volume}
+                onChange={(event) => setVolume(Number(event.target.value))}
+                aria-label="Volume"
+              />
+            </label>
+          ) : null}
+
+          {actionIcons}
+        </div>
       </div>
     </div>
   )
