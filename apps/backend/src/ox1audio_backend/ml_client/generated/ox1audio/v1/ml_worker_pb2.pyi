@@ -97,7 +97,7 @@ class WaveformAnalysis(_message.Message):
     def __init__(self, version: _Optional[int] = ..., duration_s: _Optional[float] = ..., sample_count: _Optional[int] = ..., samples: _Optional[_Iterable[float]] = ...) -> None: ...
 
 class AnalyzeTrackResponse(_message.Message):
-    __slots__ = ("track_id", "model_provider", "model_version", "duration_s", "bpm", "genre", "mood", "tags", "model_tags", "mood_scores", "instrument_scores", "genre_scores", "segments", "waveform", "is_instrumental", "vocalness")
+    __slots__ = ("track_id", "model_provider", "model_version", "duration_s", "bpm", "genre", "mood", "tags", "model_tags", "mood_scores", "instrument_scores", "genre_scores", "segments", "waveform", "is_instrumental", "vocalness", "affect_scores", "affect_labels")
     class ModelTagsEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -126,6 +126,13 @@ class AnalyzeTrackResponse(_message.Message):
         key: str
         value: float
         def __init__(self, key: _Optional[str] = ..., value: _Optional[float] = ...) -> None: ...
+    class AffectScoresEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: float
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[float] = ...) -> None: ...
     TRACK_ID_FIELD_NUMBER: _ClassVar[int]
     MODEL_PROVIDER_FIELD_NUMBER: _ClassVar[int]
     MODEL_VERSION_FIELD_NUMBER: _ClassVar[int]
@@ -142,6 +149,8 @@ class AnalyzeTrackResponse(_message.Message):
     WAVEFORM_FIELD_NUMBER: _ClassVar[int]
     IS_INSTRUMENTAL_FIELD_NUMBER: _ClassVar[int]
     VOCALNESS_FIELD_NUMBER: _ClassVar[int]
+    AFFECT_SCORES_FIELD_NUMBER: _ClassVar[int]
+    AFFECT_LABELS_FIELD_NUMBER: _ClassVar[int]
     track_id: str
     model_provider: str
     model_version: str
@@ -158,7 +167,9 @@ class AnalyzeTrackResponse(_message.Message):
     waveform: WaveformAnalysis
     is_instrumental: bool
     vocalness: float
-    def __init__(self, track_id: _Optional[str] = ..., model_provider: _Optional[str] = ..., model_version: _Optional[str] = ..., duration_s: _Optional[float] = ..., bpm: _Optional[int] = ..., genre: _Optional[str] = ..., mood: _Optional[_Iterable[str]] = ..., tags: _Optional[_Iterable[str]] = ..., model_tags: _Optional[_Mapping[str, float]] = ..., mood_scores: _Optional[_Mapping[str, float]] = ..., instrument_scores: _Optional[_Mapping[str, float]] = ..., genre_scores: _Optional[_Mapping[str, float]] = ..., segments: _Optional[_Iterable[_Union[SegmentAnalysis, _Mapping]]] = ..., waveform: _Optional[_Union[WaveformAnalysis, _Mapping]] = ..., is_instrumental: _Optional[bool] = ..., vocalness: _Optional[float] = ...) -> None: ...
+    affect_scores: _containers.ScalarMap[str, float]
+    affect_labels: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, track_id: _Optional[str] = ..., model_provider: _Optional[str] = ..., model_version: _Optional[str] = ..., duration_s: _Optional[float] = ..., bpm: _Optional[int] = ..., genre: _Optional[str] = ..., mood: _Optional[_Iterable[str]] = ..., tags: _Optional[_Iterable[str]] = ..., model_tags: _Optional[_Mapping[str, float]] = ..., mood_scores: _Optional[_Mapping[str, float]] = ..., instrument_scores: _Optional[_Mapping[str, float]] = ..., genre_scores: _Optional[_Mapping[str, float]] = ..., segments: _Optional[_Iterable[_Union[SegmentAnalysis, _Mapping]]] = ..., waveform: _Optional[_Union[WaveformAnalysis, _Mapping]] = ..., is_instrumental: _Optional[bool] = ..., vocalness: _Optional[float] = ..., affect_scores: _Optional[_Mapping[str, float]] = ..., affect_labels: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class SearchTextRequest(_message.Message):
     __slots__ = ("query", "negative_query", "top_k", "mode")
@@ -215,12 +226,16 @@ class SearchResponse(_message.Message):
     def __init__(self, results: _Optional[_Iterable[_Union[SearchResult, _Mapping]]] = ...) -> None: ...
 
 class GraphRequest(_message.Message):
-    __slots__ = ("focus_track_id", "limit")
+    __slots__ = ("focus_track_id", "limit", "sonic_weight", "vibe_weight")
     FOCUS_TRACK_ID_FIELD_NUMBER: _ClassVar[int]
     LIMIT_FIELD_NUMBER: _ClassVar[int]
+    SONIC_WEIGHT_FIELD_NUMBER: _ClassVar[int]
+    VIBE_WEIGHT_FIELD_NUMBER: _ClassVar[int]
     focus_track_id: str
     limit: int
-    def __init__(self, focus_track_id: _Optional[str] = ..., limit: _Optional[int] = ...) -> None: ...
+    sonic_weight: float
+    vibe_weight: float
+    def __init__(self, focus_track_id: _Optional[str] = ..., limit: _Optional[int] = ..., sonic_weight: _Optional[float] = ..., vibe_weight: _Optional[float] = ...) -> None: ...
 
 class GraphLink(_message.Message):
     __slots__ = ("source", "target", "weight", "audio_weight", "profile_weight", "reasons")

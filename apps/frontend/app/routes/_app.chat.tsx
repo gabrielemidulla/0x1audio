@@ -13,6 +13,7 @@ import {
   CommandList,
 } from "~/components/ui/command"
 import { Reveal } from "~/components/reveal"
+import { SlidingHoverList } from "~/components/sliding-hover-list"
 import { Skeleton } from "~/components/ui/skeleton"
 import { Spinner } from "~/components/ui/spinner"
 import { api, type ChatSummaryOut } from "~/lib/api"
@@ -139,31 +140,39 @@ export default function ChatLayout() {
             </CommandEmpty>
             {chats && chats.length > 0 ? (
               <CommandGroup heading="Recent">
-                {chats.map((chat) => (
-                  <CommandItem
-                    key={chat.id}
-                    value={
-                      chatTitlePending(chat.title)
-                        ? `untitled ${chat.id}`
-                        : `${chat.title} ${chat.id}`
-                    }
-                    onSelect={() => {
-                      setHistoryOpen(false)
-                      void navigate(`/chat/${chat.id}`)
-                    }}
-                  >
-                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      {chatTitlePending(chat.title) ? (
-                        <Skeleton className="h-4 w-36" />
-                      ) : (
-                        <span className="truncate">{chat.title}</span>
-                      )}
-                      <span className="text-muted-foreground text-xs">
-                        {new Date(chat.updated_at).toLocaleString()}
-                      </span>
-                    </div>
-                  </CommandItem>
-                ))}
+                <SlidingHoverList
+                  followSelected
+                  className="flex flex-col gap-0.5"
+                  indicatorClassName="rounded-lg bg-muted"
+                >
+                  {chats.map((chat) => (
+                    <CommandItem
+                      key={chat.id}
+                      data-sliding-item
+                      value={
+                        chatTitlePending(chat.title)
+                          ? `untitled ${chat.id}`
+                          : `${chat.title} ${chat.id}`
+                      }
+                      className="relative z-[1] data-selected:bg-transparent"
+                      onSelect={() => {
+                        setHistoryOpen(false)
+                        void navigate(`/chat/${chat.id}`)
+                      }}
+                    >
+                      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                        {chatTitlePending(chat.title) ? (
+                          <Skeleton className="h-4 w-36" />
+                        ) : (
+                          <span className="truncate">{chat.title}</span>
+                        )}
+                        <span className="text-muted-foreground text-xs">
+                          {new Date(chat.updated_at).toLocaleString()}
+                        </span>
+                      </div>
+                    </CommandItem>
+                  ))}
+                </SlidingHoverList>
               </CommandGroup>
             ) : null}
           </CommandList>

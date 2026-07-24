@@ -8,7 +8,13 @@ import { cn } from "~/lib/utils"
 import { FALLBACK_COVER_COLOR } from "~/client/constants.gen"
 
 
-export function ChatTrackRow({ track }: { track: TrackOut }) {
+export function ChatTrackRow({
+  track,
+  className,
+}: {
+  track: TrackOut
+  className?: string
+}) {
   const player = useAudioPlayer()
   const isActive = player.track?.id === track.id
   const isPlaying = isActive && player.playing
@@ -17,8 +23,9 @@ export function ChatTrackRow({ track }: { track: TrackOut }) {
     <button
       type="button"
       className={cn(
-        "group hover:bg-muted flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left",
+        "group flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left",
         isActive && "bg-muted/70",
+        className,
       )}
       onClick={() => {
         void toggleTrack(track)

@@ -42,6 +42,18 @@ class GraphResponseOut(BaseModel):
 async def get_graph(
     focus_track_id: uuid.UUID | None = None,
     limit: int = Query(default=12, ge=2, le=24),
+    sonic_weight: float | None = Query(
+        default=None,
+        ge=0.0,
+        le=5.0,
+        description="Sonic (audio embedding) weight for graph edges. Omit for worker default.",
+    ),
+    vibe_weight: float | None = Query(
+        default=None,
+        ge=0.0,
+        le=5.0,
+        description="Vibe (profile embedding) weight for graph edges. Omit for worker default.",
+    ),
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(get_current_user),
 ) -> GraphResponseOut:
@@ -55,6 +67,8 @@ async def get_graph(
         result = client.graph(
             focus_track_id=str(focus_track_id) if focus_track_id else None,
             limit=limit,
+            sonic_weight=sonic_weight,
+            vibe_weight=vibe_weight,
         )
     except grpc.RpcError as exc:
         logger.exception("graph gRPC failed")

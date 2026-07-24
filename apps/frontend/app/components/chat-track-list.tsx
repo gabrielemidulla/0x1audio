@@ -2,6 +2,7 @@ import { useState } from "react"
 import { Stack } from "@phosphor-icons/react"
 
 import { ChatTrackRow } from "~/components/chat-track-row"
+import { SlidingHoverList } from "~/components/sliding-hover-list"
 import {
   Dialog,
   DialogContent,
@@ -20,18 +21,35 @@ export function ChatTrackList({ tracks }: { tracks: TrackOut[] }) {
   if (tracks.length === 0) return null
 
   if (tracks.length <= STACK_THRESHOLD) {
-    return (
-      <ul className="flex w-full max-w-[min(40rem,100%)] flex-col gap-0.5">
-        {tracks.map((track) => (
-          <li key={track.id}>
-            <ChatTrackRow track={track} />
-          </li>
-        ))}
-      </ul>
-    )
+    return <ChatTrackRows tracks={tracks} />
   }
 
   return <ChatTrackStack tracks={tracks} />
+}
+
+function ChatTrackRows({
+  tracks,
+  className,
+}: {
+  tracks: TrackOut[]
+  className?: string
+}) {
+  return (
+    <SlidingHoverList
+      as="ul"
+      className={cn(
+        "flex w-full max-w-[min(40rem,100%)] flex-col gap-0.5",
+        className,
+      )}
+      indicatorClassName="rounded-lg bg-muted"
+    >
+      {tracks.map((track) => (
+        <li key={track.id} data-sliding-item className="relative z-[1]">
+          <ChatTrackRow track={track} />
+        </li>
+      ))}
+    </SlidingHoverList>
+  )
 }
 
 function ChatTrackStack({ tracks }: { tracks: TrackOut[] }) {
@@ -68,13 +86,10 @@ function ChatTrackStack({ tracks }: { tracks: TrackOut[] }) {
               {tracks.length} tracks from this reply
             </DialogDescription>
           </DialogHeader>
-          <ul className="max-h-[min(24rem,60vh)] overflow-y-auto -mx-1 px-1">
-            {tracks.map((track) => (
-              <li key={track.id}>
-                <ChatTrackRow track={track} />
-              </li>
-            ))}
-          </ul>
+          <ChatTrackRows
+            tracks={tracks}
+            className="max-h-[min(24rem,60vh)] max-w-none overflow-y-auto -mx-1 px-1"
+          />
         </DialogContent>
       </Dialog>
     </>
@@ -83,10 +98,7 @@ function ChatTrackStack({ tracks }: { tracks: TrackOut[] }) {
 
 function VinylStack({ tracks }: { tracks: TrackOut[] }) {
   return (
-    <span
-      className="relative h-11 w-14 shrink-0"
-      aria-hidden
-    >
+    <span className="relative h-11 w-14 shrink-0" aria-hidden>
       {tracks.map((track, index) => {
         const fromBack = tracks.length - 1 - index
         const offset = fromBack * 6
@@ -95,7 +107,7 @@ function VinylStack({ tracks }: { tracks: TrackOut[] }) {
           <span
             key={track.id}
             className={cn(
-              "absolute top-0 left-0 size-10 overflow-hidden rounded-full ring-2 ring-background shadow-sm",
+              "absolute top-0 left-0 size-10 overflow-hidden rounded-full shadow-sm ring-2 ring-background",
             )}
             style={{
               backgroundColor: track.cover_color || FALLBACK_COVER_COLOR,

@@ -324,6 +324,38 @@
   max-width: var(--app-floating-player-mini-width) !important;
 }
 
+/* Spotify/Apple-style overflow scroll for player title & artist. */
+@keyframes player-marquee-scroll {
+  0%,
+  15% {
+    transform: translateX(0);
+  }
+  45%,
+  60% {
+    transform: translateX(calc(-1 * var(--marquee-distance, 0px)));
+  }
+  90%,
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.player-marquee {
+  animation: player-marquee-scroll var(--marquee-duration, 8s) ease-in-out
+    infinite;
+  will-change: transform;
+}
+
+.player-marquee-mask {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 0.55rem,
+    #000 calc(100% - 0.55rem),
+    transparent
+  );
+}
+
 /* Default dock; open-player offset is set inline from the graph route. */
 .graph-camera-controls {
   transition: bottom 280ms var(--app-floating-player-ease, ease);
@@ -803,7 +835,8 @@
   .player-gloss-wave,
   .player-gloss-mesh,
   .player-gloss-sheen,
-  .greeting-glow-blob {
+  .greeting-glow-blob,
+  .player-marquee {
     transition: none;
     animation: none !important;
   }

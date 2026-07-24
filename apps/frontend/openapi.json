@@ -1578,6 +1578,44 @@
               "default": 12,
               "title": "Limit"
             }
+          },
+          {
+            "name": "sonic_weight",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 5.0,
+                  "minimum": 0.0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Sonic (audio embedding) weight for graph edges. Omit for worker default.",
+              "title": "Sonic Weight"
+            }
+          },
+          {
+            "name": "vibe_weight",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 5.0,
+                  "minimum": 0.0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Vibe (profile embedding) weight for graph edges. Omit for worker default.",
+              "title": "Vibe Weight"
+            }
           }
         ],
         "responses": {

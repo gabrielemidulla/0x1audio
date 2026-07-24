@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 class GraphNeighborhoodArgs(BaseModel):
     focus_track_id: str | None = None
     limit: int = Field(default=12, ge=2, le=24)
+    sonic_weight: float | None = Field(default=None, ge=0.0, le=5.0)
+    vibe_weight: float | None = Field(default=None, ge=0.0, le=5.0)
 
 
 async def graph_neighborhood(ctx: ToolContext, args: GraphNeighborhoodArgs) -> ToolResult:
@@ -37,6 +39,8 @@ async def graph_neighborhood(ctx: ToolContext, args: GraphNeighborhoodArgs) -> T
         result = client.graph(
             focus_track_id=str(focus_uuid) if focus_uuid else None,
             limit=args.limit,
+            sonic_weight=args.sonic_weight,
+            vibe_weight=args.vibe_weight,
         )
     except grpc.RpcError as exc:
         logger.exception("graph_neighborhood tool gRPC failed")

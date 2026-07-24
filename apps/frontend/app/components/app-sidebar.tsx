@@ -14,6 +14,7 @@ import {
 import { Link, useLocation } from "react-router"
 
 import { AccountDialog } from "~/components/account-dialog"
+import { SlidingHoverList } from "~/components/sliding-hover-list"
 import type { UserOut } from "~/lib/api"
 import { userAvatarUrl } from "~/lib/api"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
@@ -89,61 +90,73 @@ export function AppSidebar({ user, onUserChange, onSignOut }: AppSidebarProps) {
           <SidebarGroup>
             <SidebarGroupLabel>Library</SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
+              <SlidingHoverList
+                as="ul"
+                data-slot="sidebar-menu"
+                data-sidebar="menu"
+                className="flex w-full min-w-0 flex-col gap-0.5"
+                indicatorClassName="rounded-md bg-sidebar-accent"
+              >
+                <SidebarMenuItem data-sliding-item className="relative z-[1]">
                   <SidebarMenuButton
                     isActive={pathname === "/"}
                     tooltip="Home"
+                    className="hover:bg-transparent active:bg-transparent data-open:hover:bg-transparent"
                     render={<Link to="/" />}
                   >
                     <House />
                     <span>Home</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                <SidebarMenuItem>
+                <SidebarMenuItem data-sliding-item className="relative z-[1]">
                   <SidebarMenuButton
                     isActive={pathname === "/catalog"}
                     tooltip="Catalog"
+                    className="hover:bg-transparent active:bg-transparent data-open:hover:bg-transparent"
                     render={<Link to="/catalog" />}
                   >
                     <MusicNotes />
                     <span>Catalog</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                <SidebarMenuItem>
+                <SidebarMenuItem data-sliding-item className="relative z-[1]">
                   <SidebarMenuButton
                     isActive={pathname.startsWith("/playlists")}
                     tooltip="Playlists"
+                    className="hover:bg-transparent active:bg-transparent data-open:hover:bg-transparent"
                     render={<Link to="/playlists" />}
                   >
                     <Playlist />
                     <span>Playlists</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                <SidebarMenuItem>
+                <SidebarMenuItem data-sliding-item className="relative z-[1]">
                   <SidebarMenuButton
                     isActive={pathname === "/graph"}
                     tooltip="Graph"
+                    className="hover:bg-transparent active:bg-transparent data-open:hover:bg-transparent"
                     render={<Link to="/graph" />}
                   >
                     <Graph />
                     <span>Graph</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                <SidebarMenuItem>
+                <SidebarMenuItem data-sliding-item className="relative z-[1]">
                   <SidebarMenuButton
                     isActive={pathname.startsWith("/chat")}
                     tooltip="Chat"
+                    className="hover:bg-transparent active:bg-transparent data-open:hover:bg-transparent"
                     render={<Link to="/chat" />}
                   >
                     <ChatCircle />
                     <span>Chat</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                <SidebarMenuItem>
+                <SidebarMenuItem data-sliding-item className="relative z-[1]">
                   <SidebarMenuButton
                     isActive={pathname === "/jobs"}
                     tooltip="Jobs"
+                    className="hover:bg-transparent active:bg-transparent data-open:hover:bg-transparent"
                     render={<Link to="/jobs" />}
                   >
                     <Queue />
@@ -151,10 +164,11 @@ export function AppSidebar({ user, onUserChange, onSignOut }: AppSidebarProps) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 {user?.role === "master" ? (
-                  <SidebarMenuItem>
+                  <SidebarMenuItem data-sliding-item className="relative z-[1]">
                     <SidebarMenuButton
                       isActive={pathname === "/users"}
                       tooltip="Users"
+                      className="hover:bg-transparent active:bg-transparent data-open:hover:bg-transparent"
                       render={<Link to="/users" />}
                     >
                       <Users />
@@ -162,7 +176,7 @@ export function AppSidebar({ user, onUserChange, onSignOut }: AppSidebarProps) {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ) : null}
-              </SidebarMenu>
+              </SlidingHoverList>
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>

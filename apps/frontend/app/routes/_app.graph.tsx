@@ -8,6 +8,7 @@ import {
   MusicNote,
   Pause,
   Play,
+  SlidersHorizontal,
 } from "@phosphor-icons/react"
 import {
   GraphCanvas,
@@ -48,6 +49,15 @@ import {
 } from "~/components/ui/combobox"
 import { Button } from "~/components/ui/button"
 import { Label } from "~/components/ui/label"
+import { SegmentedControl } from "~/components/ui/segmented-control"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "~/components/ui/sheet"
+import { SteppedSlider } from "~/components/ui/stepped-slider"
 import { Spinner } from "~/components/ui/spinner"
 import { FALLBACK_COVER_COLOR } from "~/client/constants.gen"
 import { toast } from "sonner"
@@ -57,6 +67,40 @@ const SEED_LIMIT = 20
 const SEED_DEBOUNCE_MS = 300
 // Bundled Figtree (same family as app CSS) — troika needs a .ttf/.woff URL.
 const GRAPH_FONT_URL = "/fonts/figtree-latin-400-normal.ttf"
+
+/** Blend axis: 0 = pure sonic, 100 = pure vibe. API weights are complementary. */
+const WEIGHT_PRESETS = {
+  sonic: { blend: 0, label: "Sonic" },
+  balanced: { blend: 55, label: "Balanced" },
+  vibe: { blend: 100, label: "Vibe" },
+} as const
+
+type WeightPreset = keyof typeof WEIGHT_PRESETS
+
+function parseBlendParam(searchParams: URLSearchParams): number {
+  const blendRaw = searchParams.get("blend")
+  if (blendRaw != null && blendRaw !== "") {
+    const parsed = Number(blendRaw)
+    if (Number.isFinite(parsed)) {
+      return Math.max(0, Math.min(100, Math.round(parsed)))
+    }
+  }
+  // Legacy ?sonic=&vibe= → vibe share of the mix.
+  const sonic = Number(searchParams.get("sonic"))
+  const vibe = Number(searchParams.get("vibe"))
+  if (Number.isFinite(sonic) && Number.isFinite(vibe)) {
+    const total = Math.max(0, sonic) + Math.max(0, vibe)
+    if (total > 0) {
+      return Math.max(0, Math.min(100, Math.round((Math.max(0, vibe) / total) * 100)))
+    }
+  }
+  return WEIGHT_PRESETS.balanced.blend
+}
+
+function blendToWeights(blend: number): { sonic: number; vibe: number } {
+  const clamped = Math.max(0, Math.min(100, blend))
+  return { sonic: (100 - clamped) / 100, vibe: clamped / 100 }
+}
 
 // App slate neutrals. Built-in edge strokes are hidden; we draw gradient tubes.
 const graphTheme: Theme = {
@@ -366,6 +410,17 @@ export default function GraphPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const focusParam = searchParams.get("focus")
   const limit = DEFAULT_LIMIT
+  const blendPercent = parseBlendParam(searchParams)
+  const { sonic: sonicWeight, vibe: vibeWeight } = blendToWeights(blendPercent)
+  const activePreset = useMemo((): WeightPreset | null => {
+    for (const [key, preset] of Object.entries(WEIGHT_PRESETS) as [
+      WeightPreset,
+      (typeof WEIGHT_PRESETS)[WeightPreset],
+    ][]) {
+      if (preset.blend === blendPercent) return key
+    }
+    return null
+  }, [blendPercent])
   const player = useAudioPlayer()
 
   const [nodes, setNodes] = useState<Map<string, TrackOut>>(new Map())
@@ -379,6 +434,7 @@ export default function GraphPage() {
   const [seedLoading, setSeedLoading] = useState(false)
   const [booted, setBooted] = useState(false)
   const [layoutVersion, setLayoutVersion] = useState(0)
+  const [controlsOpen, setControlsOpen] = useState(false)
 
   const graphRef = useRef<GraphCanvasRef | null>(null)
   const bootRef = useRef(false)
@@ -524,9 +580,17 @@ export default function GraphPage() {
       const generation = ++expandGenerationRef.current
       setExpandingId(trackId)
       const { data, error: apiError } = await api.v1.getGraph({
-        query: { focus_track_id: trackId, limit },
+        query: {
+          focus_track_id: trackId,
+          limit,
+          sonic_weight: sonicWeight,
+          vibe_weight: vibeWeight,
+        },
       })
-      if (generation !== expandGenerationRef.current) return
+      if (generation !== expandGenerationRef.current) {
+        setExpandingId((current) => (current === trackId ? null : current))
+        return
+      }
       setExpandingId(null)
 
       if (apiError || !data) {
@@ -540,13 +604,32 @@ export default function GraphPage() {
       mergeGraph(data, trackId, replace)
       frameNeighborhood(trackId)
     },
-    [expandedIds, limit, mergeGraph, frameNeighborhood],
+    [expandedIds, limit, mergeGraph, frameNeighborhood, sonicWeight, vibeWeight],
+  )
+
+  /** Re-lens the current focus without locking the blend UI or reframing. */
+  const refreshBlend = useCallback(
+    async (trackId: string) => {
+      const generation = ++expandGenerationRef.current
+      const { data, error: apiError } = await api.v1.getGraph({
+        query: {
+          focus_track_id: trackId,
+          limit,
+          sonic_weight: sonicWeight,
+          vibe_weight: vibeWeight,
+        },
+      })
+      if (generation !== expandGenerationRef.current) return
+      if (apiError || !data || data.nodes.length === 0) return
+      mergeGraph(data, trackId, true)
+    },
+    [limit, mergeGraph, sonicWeight, vibeWeight],
   )
 
   const loadUnfocused = useCallback(async () => {
     setExpandingId("sample")
     const { data, error: apiError } = await api.v1.getGraph({
-      query: { limit },
+      query: { limit, sonic_weight: sonicWeight, vibe_weight: vibeWeight },
     })
     setExpandingId(null)
     if (apiError || !data || data.nodes.length === 0) {
@@ -559,7 +642,35 @@ export default function GraphPage() {
       return
     }
     mergeGraph(data, seed, true)
-  }, [limit, mergeGraph])
+  }, [limit, mergeGraph, sonicWeight, vibeWeight])
+
+  const setBlendPercent = useCallback(
+    (blend: number) => {
+      const nextBlend = Math.max(0, Math.min(100, Math.round(blend)))
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev)
+        next.set("blend", String(nextBlend))
+        next.delete("sonic")
+        next.delete("vibe")
+        if (!next.get("limit")) next.set("limit", String(DEFAULT_LIMIT))
+        return next
+      })
+    },
+    [setSearchParams],
+  )
+
+  // Debounced re-lens: keep controls live; only the latest weights hit the API.
+  const weightsKey = String(blendPercent)
+  const weightsKeyRef = useRef(weightsKey)
+  useEffect(() => {
+    if (!booted || !focusId) return
+    if (weightsKeyRef.current === weightsKey) return
+    const timer = window.setTimeout(() => {
+      weightsKeyRef.current = weightsKey
+      void refreshBlend(focusId)
+    }, 280)
+    return () => window.clearTimeout(timer)
+  }, [weightsKey, booted, focusId, refreshBlend])
 
   // camera-controls tuning reagraph exposes no props for: faster wheel
   // dolly, zooming toward the cursor. Polls until the canvas is live.
@@ -793,6 +904,103 @@ export default function GraphPage() {
   )
   const handleNodeOut = useCallback(() => setHoveredId(null), [])
 
+  const blendPresetOptions = useMemo(
+    () =>
+      (Object.keys(WEIGHT_PRESETS) as WeightPreset[]).map((key) => ({
+        value: key,
+        label: WEIGHT_PRESETS[key].label,
+      })),
+    [],
+  )
+
+  const renderGraphControls = (seedInputId: string) => (
+    <>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor={seedInputId}>Seed track</Label>
+        <Combobox
+          items={seedItems}
+          value={seedTrack}
+          onValueChange={(track) => {
+            if (!track) return
+            void applySeed(track.id)
+            setControlsOpen(false)
+          }}
+          onInputValueChange={(value) => {
+            scheduleSeedSearch(value)
+          }}
+          onOpenChange={(open) => {
+            if (open && seedOptions.length === 0) void fetchSeedOptions("")
+          }}
+          itemToStringLabel={trackLabel}
+          isItemEqualToValue={(item, value) => item.id === value.id}
+          filter={null}
+          disabled={expandingId !== null}
+        >
+          <ComboboxInput
+            id={seedInputId}
+            placeholder="Search title or artist…"
+            className="w-full"
+            startAddon={seedTrack ? <TrackSeedArt track={seedTrack} /> : null}
+            subtitle={seedTrack ? artistCreditsText(seedTrack) : null}
+          />
+          <ComboboxContent className="z-[70]">
+            <ComboboxEmpty>
+              {seedLoading ? "Searching…" : "No tracks found."}
+            </ComboboxEmpty>
+            <ComboboxList>
+              {(track: TrackOut) => (
+                <ComboboxItem key={track.id} value={track}>
+                  <span className="flex min-w-0 items-center gap-2">
+                    <TrackSeedArt track={track} />
+                    <span className="min-w-0 truncate">
+                      <span className="block truncate font-medium">
+                        {track.title}
+                      </span>
+                      <span className="text-muted-foreground block truncate text-xs">
+                        <ArtistCredits track={track} className="text-xs" />
+                      </span>
+                    </span>
+                  </span>
+                </ComboboxItem>
+              )}
+            </ComboboxList>
+          </ComboboxContent>
+        </Combobox>
+      </div>
+
+      <div className="flex flex-col gap-3 pt-1">
+        <div className="flex flex-col gap-1.5">
+          <Label>Blend</Label>
+          <SegmentedControl
+            aria-label="Graph blend preset"
+            value={activePreset}
+            options={blendPresetOptions}
+            onValueChange={(key) => {
+              setBlendPercent(WEIGHT_PRESETS[key].blend)
+            }}
+          />
+        </div>
+        <label className="flex flex-col gap-1.5 text-xs">
+          <span className="text-muted-foreground flex justify-between">
+            <span>Sonic</span>
+            <span>Vibe</span>
+          </span>
+          <SteppedSlider
+            value={blendPercent}
+            onValueChange={setBlendPercent}
+            min={0}
+            max={100}
+            step={5}
+            aria-label="Blend from sonic to vibe"
+          />
+          <span className="text-muted-foreground text-center tabular-nums">
+            {blendPercent}% vibe
+          </span>
+        </label>
+      </div>
+    </>
+  )
+
   return (
     <div className="relative h-full min-h-0 w-full overflow-hidden overscroll-none">
       <div className="absolute inset-0">
@@ -838,7 +1046,48 @@ export default function GraphPage() {
       </div>
 
       <div className="pointer-events-none absolute inset-0 z-10">
-        <div className="pointer-events-auto absolute top-4 left-4 flex w-[min(24rem,calc(100%-2rem))] flex-col gap-3 rounded-xl border bg-background/95 p-4 shadow-sm backdrop-blur">
+        {/* Mobile: slim chip; full seed/blend live in the sheet. */}
+        <div className="pointer-events-auto absolute top-4 left-4 flex max-w-[calc(100%-5.5rem)] items-center gap-2 rounded-xl border bg-background/95 py-1.5 pr-1.5 pl-3 shadow-sm backdrop-blur md:hidden">
+          <h1 className="flex min-w-0 items-center gap-1.5 text-sm font-medium tracking-tight">
+            <Graph className="size-4 shrink-0" weight="regular" aria-hidden />
+            <span className="truncate">Graph</span>
+            <span
+              className="inline-flex items-center gap-1 rounded-full bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground tabular-nums"
+              title={`${nodes.size} tracks in view`}
+            >
+              <MusicNote className="size-3" weight="regular" aria-hidden />
+              {nodes.size}
+            </span>
+          </h1>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="ml-auto h-8 shrink-0 gap-1.5 px-2.5"
+            onClick={() => setControlsOpen(true)}
+          >
+            <SlidersHorizontal className="size-3.5" weight="regular" />
+            Controls
+          </Button>
+        </div>
+
+        <Sheet open={controlsOpen} onOpenChange={setControlsOpen}>
+          <SheetContent side="bottom" className="gap-0 md:hidden">
+            <SheetHeader className="border-b">
+              <SheetTitle>Graph controls</SheetTitle>
+              <SheetDescription>
+                Pick a seed and blend sonic vs vibe.
+                {expandingId ? " Expanding…" : null}
+              </SheetDescription>
+            </SheetHeader>
+            <div className="flex flex-col gap-3 px-4 pt-3 pb-6">
+              {renderGraphControls("seed-mobile")}
+            </div>
+          </SheetContent>
+        </Sheet>
+
+        {/* Desktop: full left card. */}
+        <div className="pointer-events-auto absolute top-4 left-4 hidden w-[min(24rem,calc(100%-2rem))] flex-col gap-3 rounded-xl border bg-background/95 p-4 shadow-sm backdrop-blur md:flex">
           <div>
             <h1 className="flex items-center gap-2 text-base font-medium tracking-tight">
               <Graph className="size-4 shrink-0" weight="regular" aria-hidden />
@@ -852,71 +1101,21 @@ export default function GraphPage() {
               </span>
             </h1>
             <p className="text-muted-foreground text-xs leading-relaxed">
-              Explore tracks that sound alike.
+              Explore tracks by sound, vibe, or a blend of both.
               {expandingId ? " Expanding…" : null}
             </p>
           </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="seed">Seed track</Label>
-            <Combobox
-              items={seedItems}
-              value={seedTrack}
-              onValueChange={(track) => {
-                if (track) void applySeed(track.id)
-              }}
-              onInputValueChange={(value) => {
-                scheduleSeedSearch(value)
-              }}
-              onOpenChange={(open) => {
-                if (open && seedOptions.length === 0) void fetchSeedOptions("")
-              }}
-              itemToStringLabel={trackLabel}
-              isItemEqualToValue={(item, value) => item.id === value.id}
-              filter={null}
-              disabled={expandingId !== null}
-            >
-              <ComboboxInput
-                id="seed"
-                placeholder="Search title or artist…"
-                className="w-full"
-                startAddon={seedTrack ? <TrackSeedArt track={seedTrack} /> : null}
-                subtitle={
-                  seedTrack ? artistCreditsText(seedTrack) : null
-                }
-              />
-              <ComboboxContent className="z-[60]">
-                <ComboboxEmpty>
-                  {seedLoading ? "Searching…" : "No tracks found."}
-                </ComboboxEmpty>
-                <ComboboxList>
-                  {(track: TrackOut) => (
-                    <ComboboxItem key={track.id} value={track}>
-                      <span className="flex min-w-0 items-center gap-2">
-                        <TrackSeedArt track={track} />
-                        <span className="min-w-0 truncate">
-                          <span className="block truncate font-medium">
-                            {track.title}
-                          </span>
-                          <span className="text-muted-foreground block truncate text-xs">
-                            <ArtistCredits track={track} className="text-xs" />
-                          </span>
-                        </span>
-                      </span>
-                    </ComboboxItem>
-                  )}
-                </ComboboxList>
-              </ComboboxContent>
-            </Combobox>
-          </div>
+          {renderGraphControls("seed")}
         </div>
 
         {selected ? (
-          <aside className="pointer-events-auto absolute top-4 right-4 flex w-[min(22rem,calc(100%-2rem))] flex-col gap-3 rounded-xl border bg-background/95 p-4 shadow-sm backdrop-blur">
+          <aside className="pointer-events-auto absolute top-4 right-4 hidden w-[min(22rem,calc(100%-2rem))] flex-col gap-3 rounded-xl border bg-background/95 p-4 shadow-sm backdrop-blur md:flex">
             <div className="flex gap-3">
               <div
                 className="size-14 shrink-0 overflow-hidden rounded-lg bg-muted"
-                style={{ backgroundColor: selected.cover_color || FALLBACK_COVER_COLOR }}
+                style={{
+                  backgroundColor: selected.cover_color || FALLBACK_COVER_COLOR,
+                }}
               >
                 {selected.has_cover ? (
                   <img
@@ -970,7 +1169,8 @@ export default function GraphPage() {
                         <span
                           className="size-9 shrink-0 overflow-hidden rounded-md bg-muted"
                           style={{
-                            backgroundColor: track.cover_color || FALLBACK_COVER_COLOR,
+                            backgroundColor:
+                              track.cover_color || FALLBACK_COVER_COLOR,
                           }}
                         >
                           {track.has_cover ? (
@@ -995,7 +1195,9 @@ export default function GraphPage() {
                 </ul>
               </div>
             ) : (
-              <p className="text-muted-foreground text-sm">No linked neighbors yet.</p>
+              <p className="text-muted-foreground text-sm">
+                No linked neighbors yet.
+              </p>
             )}
           </aside>
         ) : null}

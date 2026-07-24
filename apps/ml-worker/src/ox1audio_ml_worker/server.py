@@ -82,9 +82,17 @@ class MlWorkerServicer(ml_worker_pb2_grpc.MlWorkerServicer):
             focus = (
                 request.focus_track_id if request.HasField("focus_track_id") else None
             )
+            sonic = (
+                float(request.sonic_weight) if request.HasField("sonic_weight") else None
+            )
+            vibe = (
+                float(request.vibe_weight) if request.HasField("vibe_weight") else None
+            )
             result = get_operations().graph(
                 focus_track_id=focus,
                 limit=request.limit,
+                sonic_weight=sonic,
+                vibe_weight=vibe,
             )
             return ml_worker_pb2.GraphResponse(
                 node_ids=result["node_ids"],
@@ -117,6 +125,8 @@ def _analyze_response(result: dict[str, Any]) -> ml_worker_pb2.AnalyzeTrackRespo
         mood_scores=_float_map(result.get("mood_scores")),
         instrument_scores=_float_map(result.get("instrument_scores")),
         genre_scores=_float_map(result.get("genre_scores")),
+        affect_scores=_float_map(result.get("affect_scores")),
+        affect_labels=[str(item) for item in result.get("affect_labels") or []],
         waveform=ml_worker_pb2.WaveformAnalysis(
             version=int(waveform.get("version") or 1),
             duration_s=float(waveform.get("duration_s") or 0.0),

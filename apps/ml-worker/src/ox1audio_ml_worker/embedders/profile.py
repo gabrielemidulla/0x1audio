@@ -36,16 +36,28 @@ def track_audio_profile_text(analysis: dict[str, Any]) -> str:
 
     if not head_genres and not head_moods and not head_instruments:
         if not fallback_tags:
-            return ""
-        return f"A music track described as {join_labels(fallback_tags)}."
+            sentence = ""
+        else:
+            sentence = f"A music track described as {join_labels(fallback_tags)}."
+    else:
+        extra = [
+            label
+            for label in genres[3:] + moods[5:] + instruments[5:]
+            if label not in head_genres + head_moods + head_instruments
+        ]
+        if extra:
+            sentence += f" Also tagged: {join_labels(extra[:12])}."
 
-    extra = [
-        label
-        for label in genres[3:] + moods[5:] + instruments[5:]
-        if label not in head_genres + head_moods + head_instruments
-    ]
-    if extra:
-        sentence += f" Also tagged: {join_labels(extra[:12])}."
+    affect = analysis.get("affect_scores")
+    if isinstance(affect, dict) and affect:
+        from ox1audio_ml_worker.audio.affect import affect_phrase
+
+        phrase = affect_phrase({str(k): float(v) for k, v in affect.items()})
+        if phrase:
+            if sentence:
+                sentence = sentence.rstrip(".").rstrip() + f". {phrase}."
+            else:
+                sentence = f"{phrase}."
     return sentence
 
 
@@ -58,6 +70,11 @@ def track_profile_tag_text(analysis: dict[str, Any]) -> str:
             if normalized_label and normalized_label not in seen:
                 seen.add(normalized_label)
                 tags.append(label.strip())
+    for label in analysis.get("affect_labels") or []:
+        normalized_label = str(label).strip().lower()
+        if normalized_label and normalized_label not in seen:
+            seen.add(normalized_label)
+            tags.append(str(label).strip())
     if not tags:
         for label in qualifying_labels(analysis.get("model_tags"), max_count=12):
             normalized_label = label.strip().lower()
@@ -84,6 +101,11 @@ def profile_search_tags(analysis: dict[str, Any]) -> list[str]:
             if normalized_label and normalized_label not in seen:
                 seen.add(normalized_label)
                 tags.append(normalized_label)
+    for label in analysis.get("affect_labels") or []:
+        normalized_label = str(label).strip().lower()
+        if normalized_label and normalized_label not in seen:
+            seen.add(normalized_label)
+            tags.append(normalized_label)
     return tags
 
 

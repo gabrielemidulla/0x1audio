@@ -58,9 +58,12 @@ message AnalyzeTrackResponse {
   map<string, float> genre_scores = 12;
   repeated SegmentAnalysis segments = 13;
   WaveformAnalysis waveform = 14;
-  // Derived from Essentia Jamendo instrument "voice" score.
+  // Derived from Short-chunk CNN "voice" score.
   optional bool is_instrumental = 15;
   optional float vocalness = 16;
+  // CLAP zero-shot affect axes (affect-v1): intimacy, darkness, tension, etc...
+  map<string, float> affect_scores = 17;
+  repeated string affect_labels = 18;
 }
 
 enum SearchMode {
@@ -104,6 +107,10 @@ message SearchResponse {
 message GraphRequest {
   optional string focus_track_id = 1;
   int32 limit = 2;
+  // Per-request blend for edge/neighbor scoring. Omit to use worker defaults.
+  // Ratios matter (e.g. sonic=2, vibe=0 → pure audio). Values may exceed 1.
+  optional float sonic_weight = 3;
+  optional float vibe_weight = 4;
 }
 
 message GraphLink {

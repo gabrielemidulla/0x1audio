@@ -13,12 +13,12 @@ dependencies = [
   "numpy>=1.26,<2",
   "librosa>=0.10.1,<0.11",
   "soundfile>=0.13,<0.14",
-  "muq==0.1.0",
   "huggingface-hub>=0.34,<1",
   "transformers>=4.51,<5",
   # Provided by the CUDA base image in Docker; keep for local uv sync.
   "torch>=2.5,<3",
-  "essentia-tensorflow==2.1b6.dev1389",
+  # MelSpectrogram for Short-chunk CNN; also provided by the CUDA base image.
+  "torchaudio>=2.5,<3",
 ]
 
 [build-system]

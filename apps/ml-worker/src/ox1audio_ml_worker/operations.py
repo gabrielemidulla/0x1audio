@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from ox1audio_ml_worker.audio.analysis import analyze_track, load_audio
+from ox1audio_ml_worker.audio.affect import merge_affect_into_analysis
 from ox1audio_ml_worker.audio.download import download_audio
 from ox1audio_ml_worker.embedders.profile import (
     profile_search_tags,
@@ -38,6 +39,7 @@ class WorkerOperations:
         try:
             samples, duration_s = load_audio(audio_path)
             analysis = analyze_track(samples, duration_s, audio_path)
+            merge_affect_into_analysis(analysis, list(analysis.get("clips") or []))
 
             for index, segment in enumerate(analysis["segments"]):
                 segment["id"] = str(
@@ -149,11 +151,15 @@ class WorkerOperations:
         *,
         focus_track_id: str | None,
         limit: int,
+        sonic_weight: float | None = None,
+        vibe_weight: float | None = None,
     ) -> dict[str, Any]:
         limit = limit or 12
         node_ids, links = self.vectors.graph(
             focus_track_id=focus_track_id or None,
             limit=limit,
+            sonic_weight=sonic_weight,
+            vibe_weight=vibe_weight,
         )
         return {"node_ids": node_ids, "links": links}
 

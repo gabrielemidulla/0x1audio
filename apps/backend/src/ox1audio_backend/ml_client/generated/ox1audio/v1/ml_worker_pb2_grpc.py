@@ -27,7 +27,6 @@ if _version_not_supported:
 
 class MlWorkerStub:
     """Shared gRPC surface: backend ingest/search ↔ apps/ml-worker.
-    Shapes follow docs/SPEC.md + goodtaste contracts (no organization_id).
 
     """
 
@@ -66,7 +65,6 @@ class MlWorkerStub:
 
 class MlWorkerServicer:
     """Shared gRPC surface: backend ingest/search ↔ apps/ml-worker.
-    Shapes follow docs/SPEC.md + goodtaste contracts (no organization_id).
 
     """
 
@@ -138,7 +136,6 @@ def add_MlWorkerServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class MlWorker:
     """Shared gRPC surface: backend ingest/search ↔ apps/ml-worker.
-    Shapes follow docs/SPEC.md + goodtaste contracts (no organization_id).
 
     """
 

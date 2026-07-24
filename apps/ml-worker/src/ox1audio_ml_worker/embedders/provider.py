@@ -6,12 +6,16 @@ from functools import lru_cache
 
 import numpy as np
 
+from ox1audio_ml_worker.audio.tagging import PROVIDER_NAME as TAGGER_BASE
+from ox1audio_ml_worker.audio.affect import AFFECT_VERSION
 from ox1audio_ml_worker.config import get_settings
 
 logger = logging.getLogger(__name__)
 
 MODEL_LOCK = threading.RLock()
 LANGUAGE_MODEL_LOCK = threading.RLock()
+
+EXPECTED_AUDIO_VECTOR_SIZE = 512
 
 
 def normalized(vector: list[float] | np.ndarray) -> list[float]:
@@ -51,12 +55,14 @@ def blend_profile_vectors(
 class ModelProvider:
     def __init__(self) -> None:
         settings = get_settings()
-        self.model_id = settings.muq_model_id
+        self.model_id = settings.clap_model_id
         self.language_model_id = settings.language_model_id
+        # Profile collection versions with tagger + affect recipe together.
+        self.tagger_name = f"{TAGGER_BASE}__{AFFECT_VERSION}"
 
     @property
     def name(self) -> str:
-        return "muq-mulan-large"
+        return "laion-clap-music"
 
     @property
     def version(self) -> str:
@@ -64,28 +70,46 @@ class ModelProvider:
 
     @property
     def vector_size(self) -> int:
-        return 512
+        return EXPECTED_AUDIO_VECTOR_SIZE
 
     @property
     def profile_vector_size(self) -> int:
         return get_settings().language_vector_size
 
     def embed_text(self, text: str) -> list[float]:
-        import torch
-
-        with MODEL_LOCK, torch.inference_mode():
-            vectors = muq_model()(texts=[text])
+        processor, model = clap_bundle()
+        device = worker_device()
+        with MODEL_LOCK:
+            vectors = clap_text_features(processor, model, [text], device)
         return tensor_vector(vectors[0])
 
     def embed_audio_clips(self, clips: list[np.ndarray]) -> list[list[float]]:
         import torch
 
-        batch = torch.stack([torch.from_numpy(clip).float() for clip in clips]).to(
-            muq_device()
-        )
+        if not clips:
+            return []
+
+        processor, model = clap_bundle()
+        device = worker_device()
+        # ClapFeatureExtractor expects 48 kHz; clips are prepared at SAMPLE_RATE.
+        sampling_rate = int(processor.feature_extractor.sampling_rate)
         with MODEL_LOCK, torch.inference_mode():
-            vectors = muq_model()(wavs=batch, parallel_processing=False)
-        return [tensor_vector(vector) for vector in vectors]
+            inputs = processor(
+                audio=[clip.astype(np.float32) for clip in clips],
+                sampling_rate=sampling_rate,
+                return_tensors="pt",
+                padding=True,
+            )
+            inputs = {key: value.to(device) for key, value in inputs.items()}
+            vectors = model.get_audio_features(**inputs)
+        result = [tensor_vector(vector) for vector in vectors]
+        for vector in result:
+            if len(vector) != EXPECTED_AUDIO_VECTOR_SIZE:
+                raise RuntimeError(
+                    f"CLAP audio embedding dim is {len(vector)}, expected "
+                    f"{EXPECTED_AUDIO_VECTOR_SIZE}. Refusing to reshape collections."
+                )
+        return result
 
     def embed_profile_text(self, text: str) -> list[float]:
         vectors = self.embed_profile_texts([text])
@@ -110,7 +134,7 @@ class ModelProvider:
         import torch
 
         tokenizer, model = language_model_bundle(self.language_model_id)
-        device = muq_device()
+        device = worker_device()
         with LANGUAGE_MODEL_LOCK, torch.inference_mode():
             inputs = tokenizer(
                 cleaned,
@@ -126,7 +150,7 @@ class ModelProvider:
 
 
 @lru_cache(maxsize=1)
-def muq_device():
+def worker_device():
     import torch
 
     # CUDA-only: Compose always runs ml-worker with an NVIDIA GPU.
@@ -135,17 +159,54 @@ def muq_device():
             "CUDA is required for the ML worker (torch.cuda.is_available() is False)"
         )
     device = torch.device("cuda")
-    logger.info("MuQ device=cuda (%s)", torch.cuda.get_device_name(0))
+    logger.info("ML worker device=cuda (%s)", torch.cuda.get_device_name(0))
     return device
 
 
 @lru_cache(maxsize=1)
-def muq_model():
-    from muq import MuQMuLan
+def clap_bundle():
+    from transformers import ClapModel, ClapProcessor
 
-    model_id = get_settings().muq_model_id
-    model = MuQMuLan.from_pretrained(model_id, local_files_only=True)
-    return model.to(muq_device()).eval()
+    model_id = get_settings().clap_model_id
+    processor = ClapProcessor.from_pretrained(model_id, local_files_only=True)
+    model = ClapModel.from_pretrained(model_id, local_files_only=True)
+    projection_dim = int(getattr(model.config, "projection_dim", 0) or 0)
+    if projection_dim != EXPECTED_AUDIO_VECTOR_SIZE:
+        raise RuntimeError(
+            f"CLAP projection_dim is {projection_dim}, expected "
+            f"{EXPECTED_AUDIO_VECTOR_SIZE}. Stopping rather than reshaping collections."
+        )
+    return processor, model.to(worker_device()).eval()
+
+
+def clap_text_features(processor, model, texts: list[str], device):
+    """Project CLAP text embeddings with mean pooling.
+
+    HuggingFace ``get_text_features`` uses RoBERTa ``pooler_output`` (CLS+tanh).
+    For some LAION CLAP checkpoints (notably ``larger_clap_music``) the CLS
+    pooler collapses prompts to ~0.999 cosine — mean-pooling
+    ``last_hidden_state`` (original LAION CLAP) restores discrimination.
+    Harmless for healthy checkpoints such as ``larger_clap_music_and_speech``.
+    """
+    import torch
+    import torch.nn.functional as F
+
+    if not texts:
+        return torch.empty((0, EXPECTED_AUDIO_VECTOR_SIZE), device=device)
+
+    with torch.inference_mode():
+        inputs = processor(text=texts, return_tensors="pt", padding=True)
+        inputs = {key: value.to(device) for key, value in inputs.items()}
+        text_outputs = model.text_model(
+            input_ids=inputs["input_ids"],
+            attention_mask=inputs["attention_mask"],
+        )
+        mask = inputs["attention_mask"].unsqueeze(-1).type_as(text_outputs.last_hidden_state)
+        pooled = (text_outputs.last_hidden_state * mask).sum(dim=1) / mask.sum(dim=1).clamp(
+            min=1
+        )
+        projected = model.text_projection(pooled)
+        return F.normalize(projected, dim=-1)
 
 
 @lru_cache(maxsize=2)
@@ -153,7 +214,7 @@ def language_model_bundle(model_id: str):
     from transformers import AutoModel, AutoTokenizer
 
     tokenizer = AutoTokenizer.from_pretrained(model_id, local_files_only=True)
-    model = AutoModel.from_pretrained(model_id, local_files_only=True).to(muq_device()).eval()
+    model = AutoModel.from_pretrained(model_id, local_files_only=True).to(worker_device()).eval()
     return tokenizer, model
 
 

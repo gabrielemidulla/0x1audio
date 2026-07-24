@@ -174,10 +174,25 @@ def filter_tiny_catalog(results: list[ScoredTrack]) -> list[ScoredTrack]:
     return [result for result in results if result.score >= floor]
 
 
-def combined_graph_score(audio_score: float, profile_score: float) -> float:
+def combined_graph_score(
+    audio_score: float,
+    profile_score: float,
+    *,
+    sonic_weight: float | None = None,
+    vibe_weight: float | None = None,
+) -> float:
+    """Blend audio + profile cosines. Weights are raw multipliers (need not sum to 1)."""
     settings = get_settings()
-    if profile_score <= 0:
-        return audio_score
-    return (audio_score * settings.audio_search_weight) + (
-        profile_score * settings.profile_search_weight
+    audio_w = settings.audio_search_weight if sonic_weight is None else float(sonic_weight)
+    profile_w = (
+        settings.profile_search_weight if vibe_weight is None else float(vibe_weight)
     )
+    audio_w = max(0.0, audio_w)
+    profile_w = max(0.0, profile_w)
+    if audio_w <= 0 and profile_w <= 0:
+        return max(0.0, audio_score)
+    if profile_w <= 0:
+        return max(0.0, audio_score) * audio_w
+    if audio_w <= 0:
+        return max(0.0, profile_score) * profile_w
+    return (max(0.0, audio_score) * audio_w) + (max(0.0, profile_score) * profile_w)

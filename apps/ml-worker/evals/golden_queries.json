@@ -5,13 +5,24 @@
       "id": "calm-ambient",
       "query": "calm ambient pad",
       "expect_none": false,
-      "notes": "Soft semantic recall; tag overlap may boost but must not gate."
+      "relevant_ids_file": "relevant_calm_ambient_muq.json",
+      "relevant_tags_any": [
+        "ambient",
+        "atmospheric",
+        "chillout",
+        "downtempo",
+        "relaxing",
+        "newage",
+        "easylistening",
+        "lounge"
+      ],
+      "notes": "Soft semantic recall; tag overlap may boost but must not gate. Prefer frozen MuQ-era relevant_ids_file for before/after comparability."
     },
     {
       "id": "absent-concept",
       "query": "opera aria",
       "expect_none": true,
-      "notes": "Should stay empty / weak when catalog has no opera-like tracks."
+      "notes": "Should stay empty / weak when catalog has no opera-like tracks. Watch CLAP false positives."
     }
   ]
 }
