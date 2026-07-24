@@ -3,7 +3,8 @@
 # Deploy/secrets: env.
 
 # Models
-clap_model_id: laion/larger_clap_music
+# larger_clap_music collapses M2M (Royalty→No Rival ~rank 186). music_and_speech recovers MuQ-like ranks.
+clap_model_id: laion/larger_clap_music_and_speech
 language_model_id: sentence-transformers/all-MiniLM-L6-v2
 language_vector_size: 384
 # Short-chunk CNN weights default to <ml-worker>/data/models/short_chunk/best_model.pth

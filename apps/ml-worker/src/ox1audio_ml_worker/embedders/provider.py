@@ -6,7 +6,8 @@ from functools import lru_cache
 
 import numpy as np
 
-from ox1audio_ml_worker.audio.tagging import PROVIDER_NAME as TAGGER_NAME
+from ox1audio_ml_worker.audio.tagging import PROVIDER_NAME as TAGGER_BASE
+from ox1audio_ml_worker.audio.affect import AFFECT_VERSION
 from ox1audio_ml_worker.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -56,7 +57,8 @@ class ModelProvider:
         settings = get_settings()
         self.model_id = settings.clap_model_id
         self.language_model_id = settings.language_model_id
-        self.tagger_name = TAGGER_NAME
+        # Profile collection versions with tagger + affect recipe together.
+        self.tagger_name = f"{TAGGER_BASE}__{AFFECT_VERSION}"
 
     @property
     def name(self) -> str:
@@ -75,14 +77,10 @@ class ModelProvider:
         return get_settings().language_vector_size
 
     def embed_text(self, text: str) -> list[float]:
-        import torch
-
         processor, model = clap_bundle()
         device = worker_device()
-        with MODEL_LOCK, torch.inference_mode():
-            inputs = processor(text=[text], return_tensors="pt", padding=True)
-            inputs = {key: value.to(device) for key, value in inputs.items()}
-            vectors = model.get_text_features(**inputs)
+        with MODEL_LOCK:
+            vectors = clap_text_features(processor, model, [text], device)
         return tensor_vector(vectors[0])
 
     def embed_audio_clips(self, clips: list[np.ndarray]) -> list[list[float]]:
@@ -97,7 +95,7 @@ class ModelProvider:
         sampling_rate = int(processor.feature_extractor.sampling_rate)
         with MODEL_LOCK, torch.inference_mode():
             inputs = processor(
-                audios=[clip.astype(np.float32) for clip in clips],
+                audio=[clip.astype(np.float32) for clip in clips],
                 sampling_rate=sampling_rate,
                 return_tensors="pt",
                 padding=True,
@@ -179,6 +177,36 @@ def clap_bundle():
             f"{EXPECTED_AUDIO_VECTOR_SIZE}. Stopping rather than reshaping collections."
         )
     return processor, model.to(worker_device()).eval()
+
+
+def clap_text_features(processor, model, texts: list[str], device):
+    """Project CLAP text embeddings with mean pooling.
+
+    HuggingFace ``get_text_features`` uses RoBERTa ``pooler_output`` (CLS+tanh).
+    For some LAION CLAP checkpoints (notably ``larger_clap_music``) the CLS
+    pooler collapses prompts to ~0.999 cosine — mean-pooling
+    ``last_hidden_state`` (original LAION CLAP) restores discrimination.
+    Harmless for healthy checkpoints such as ``larger_clap_music_and_speech``.
+    """
+    import torch
+    import torch.nn.functional as F
+
+    if not texts:
+        return torch.empty((0, EXPECTED_AUDIO_VECTOR_SIZE), device=device)
+
+    with torch.inference_mode():
+        inputs = processor(text=texts, return_tensors="pt", padding=True)
+        inputs = {key: value.to(device) for key, value in inputs.items()}
+        text_outputs = model.text_model(
+            input_ids=inputs["input_ids"],
+            attention_mask=inputs["attention_mask"],
+        )
+        mask = inputs["attention_mask"].unsqueeze(-1).type_as(text_outputs.last_hidden_state)
+        pooled = (text_outputs.last_hidden_state * mask).sum(dim=1) / mask.sum(dim=1).clamp(
+            min=1
+        )
+        projected = model.text_projection(pooled)
+        return F.normalize(projected, dim=-1)
 
 
 @lru_cache(maxsize=2)

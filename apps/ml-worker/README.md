@@ -24,7 +24,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  Waveform --> CLAP[laion/larger_clap_music]
+  Waveform --> CLAP[laion/larger_clap_music_and_speech]
   Waveform --> Tagger[Short-chunk CNN Jamendo]
   Tagger --> Prose[prose + tags]
   Prose --> MiniLM[all-MiniLM-L6-v2]
@@ -34,9 +34,10 @@ flowchart LR
 
 | Model | License | Dim | Job |
 |-------|---------|-----|-----|
-| `laion/larger_clap_music` | Apache 2.0 (weights) | 512 | joint audio ↔ text |
+| `laion/larger_clap_music_and_speech` | Apache 2.0 (weights) | 512 | joint audio ↔ text (M2M; replaces collapsed `larger_clap_music`) |
 | `all-MiniLM-L6-v2` | Apache 2.0 | 384 | language profile |
 | Short-chunk CNN + Res (Jamendo top-50) | MIT | — | genre / instrument / mood tags |
+| CLAP affect-v1 (zero-shot axes) | Apache 2.0 | — | intimacy / darkness / tension / … for profile text |
 | librosa | ISC | — | BPM, energy, waveform |
 
 CLAP at 48 kHz mono (10 s clips). Short-chunk CNN at 16 kHz with 3.69 s chunks. Collection names include model + tagger version — recipe changes need a reindex (old collections stay for rollback).
@@ -83,7 +84,7 @@ Defaults live in [`config.yaml`](./config.yaml) (`audio_search_weight` 0.45 / `p
 
 ## Graph
 
-Similarity neighborhood only: nearby in CLAP and/or MiniLM, then pairwise edges.
+Similarity neighborhood only: nearby in CLAP and/or MiniLM, then pairwise edges. Per-request `sonic_weight` / `vibe_weight` control the blend (UI presets: Sonic / Balanced / Vibe).
 
 ```mermaid
 flowchart TB
@@ -104,7 +105,7 @@ CUDA required (`torch.cuda.is_available()`). NVIDIA Container Toolkit on the hos
 
 ```bash
 uv run python scripts/download_short_chunk_model.py
-# Ensure laion/larger_clap_music is in HF_HOME (Compose volume ml_worker_hf)
+# Ensure laion/larger_clap_music_and_speech is in HF_HOME (Compose volume ml_worker_hf)
 docker compose -f compose.yaml -f compose.dev.yaml up -d --build ml-worker backend-worker
 ```
 

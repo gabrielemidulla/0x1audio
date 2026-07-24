@@ -1,4 +1,11 @@
-import { CaretDown, Pause, Play, SpeakerHigh, X } from "@phosphor-icons/react"
+import {
+  CaretDown,
+  Graph,
+  Pause,
+  Play,
+  SpeakerHigh,
+  X,
+} from "@phosphor-icons/react"
 import {
   useCallback,
   useEffect,
@@ -7,6 +14,7 @@ import {
   useState,
   type CSSProperties,
 } from "react"
+import { Link } from "react-router"
 
 import {
   closePlayer,
@@ -25,8 +33,15 @@ import {
   type CoverPalette,
 } from "~/lib/cover-palette"
 import { api, trackCoverUrl, type TrackOut } from "~/lib/api"
-import { ArtistCredits } from "~/components/artist-credits"
+import { ArtistCredits, artistCreditsText } from "~/components/artist-credits"
+import { MarqueeText } from "~/components/marquee-text"
 import { Button } from "~/components/ui/button"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "~/components/ui/tooltip"
 import { TrackWaveform } from "~/components/track-waveform"
 import { cn } from "~/lib/utils"
 
@@ -285,6 +300,13 @@ export function FloatingTrackPlayer() {
     } as CSSProperties
   }, [palette, player.volume])
 
+  const ghostIconClass = cn(
+    "size-8",
+    palette.onDark
+      ? "text-white/70 hover:bg-white/10 hover:text-white"
+      : "text-slate-950/70 hover:bg-black/10 hover:text-slate-950",
+  )
+
   if (!track) return null
 
   return (
@@ -327,13 +349,22 @@ export function FloatingTrackPlayer() {
             ) : null}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-medium">{track.title}</div>
-            <div
-              className="truncate text-xs"
-              style={{ color: "var(--player-fg-muted)" }}
+            <MarqueeText
+              className="text-sm font-medium"
+              contentKey={`${track.id}:title:${track.title}`}
             >
-              <ArtistCredits track={track} className="text-xs text-inherit" />
-            </div>
+              {track.title}
+            </MarqueeText>
+            <MarqueeText
+              className="text-xs"
+              style={{ color: "var(--player-fg-muted)" }}
+              contentKey={`${track.id}:artist:${artistCreditsText(track)}`}
+            >
+              <ArtistCredits
+                track={track}
+                className="overflow-visible text-xs whitespace-nowrap text-inherit"
+              />
+            </MarqueeText>
           </div>
         </div>
 
@@ -428,38 +459,64 @@ export function FloatingTrackPlayer() {
             </label>
           ) : null}
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className={cn(
-              "hidden size-8 md:inline-flex",
-              palette.onDark
-                ? "text-white/70 hover:bg-white/10 hover:text-white"
-                : "text-slate-950/70 hover:bg-black/10 hover:text-slate-950",
-            )}
-            aria-label={mini ? "Expand player" : "Mini player"}
-            aria-pressed={mini}
-            onClick={() => setMini((value) => !value)}
-          >
-            <CaretDown className={cn("size-4", mini && "rotate-180")} />
-          </Button>
+          <TooltipProvider delay={500}>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className={ghostIconClass}
+                    aria-label="Go to the graph"
+                    render={<Link to={`/graph?focus=${track.id}`} />}
+                  />
+                }
+              >
+                <Graph className="size-4" />
+              </TooltipTrigger>
+              <TooltipContent side="top">Go to the graph</TooltipContent>
+            </Tooltip>
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className={cn(
-              "size-8",
-              palette.onDark
-                ? "text-white/70 hover:bg-white/10 hover:text-white"
-                : "text-slate-950/70 hover:bg-black/10 hover:text-slate-950",
-            )}
-            aria-label="Close player"
-            onClick={() => closePlayer()}
-          >
-            <X className="size-4" />
-          </Button>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className={cn("hidden md:inline-flex", ghostIconClass)}
+                    aria-label={mini ? "Hide mini player" : "Show mini player"}
+                    aria-pressed={mini}
+                    onClick={() => setMini((value) => !value)}
+                  />
+                }
+              >
+                <CaretDown className={cn("size-4", mini && "rotate-180")} />
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                {mini ? "Hide mini player" : "Show mini player"}
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className={ghostIconClass}
+                    aria-label="Close player"
+                    onClick={() => closePlayer()}
+                  />
+                }
+              >
+                <X className="size-4" />
+              </TooltipTrigger>
+              <TooltipContent side="top">Close player</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
     </div>

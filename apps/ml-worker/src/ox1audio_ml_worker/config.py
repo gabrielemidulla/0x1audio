@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     qdrant_timeout_seconds: float = 30.0
 
     # Models / paths (yaml; env can override)
-    clap_model_id: str = "laion/larger_clap_music"
+    clap_model_id: str = "laion/larger_clap_music_and_speech"
     language_model_id: str = "sentence-transformers/all-MiniLM-L6-v2"
     language_vector_size: int = 384
     tagger_weights_path: Path = Field(default=_DEFAULT_TAGGER_WEIGHTS)

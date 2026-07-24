@@ -143,6 +143,8 @@ class MlClient:
         *,
         focus_track_id: str | None = None,
         limit: int = 12,
+        sonic_weight: float | None = None,
+        vibe_weight: float | None = None,
         timeout_s: float | None = None,
     ) -> GraphResult:
         settings = get_settings()
@@ -150,6 +152,10 @@ class MlClient:
         request = ml_worker_pb2.GraphRequest(limit=limit)
         if focus_track_id:
             request.focus_track_id = focus_track_id
+        if sonic_weight is not None:
+            request.sonic_weight = float(sonic_weight)
+        if vibe_weight is not None:
+            request.vibe_weight = float(vibe_weight)
         response = self._stub.Graph(request, timeout=timeout)
         return GraphResult(
             node_ids=list(response.node_ids),

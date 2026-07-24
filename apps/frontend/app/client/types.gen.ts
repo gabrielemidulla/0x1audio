@@ -1922,6 +1922,14 @@ export type GetApiV1GraphData = {
          * Limit
          */
         limit?: number;
+        /**
+         * Sonic (audio embedding) weight for graph edges. Omit for worker default.
+         */
+        sonic_weight?: number | null;
+        /**
+         * Vibe (profile embedding) weight for graph edges. Omit for worker default.
+         */
+        vibe_weight?: number | null;
     };
     url: '/api/v1/graph';
 };

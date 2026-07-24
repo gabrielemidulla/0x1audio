@@ -48,6 +48,8 @@ import {
 } from "~/components/ui/combobox"
 import { Button } from "~/components/ui/button"
 import { Label } from "~/components/ui/label"
+import { SegmentedControl } from "~/components/ui/segmented-control"
+import { SteppedSlider } from "~/components/ui/stepped-slider"
 import { Spinner } from "~/components/ui/spinner"
 import { FALLBACK_COVER_COLOR } from "~/client/constants.gen"
 import { toast } from "sonner"
@@ -57,6 +59,40 @@ const SEED_LIMIT = 20
 const SEED_DEBOUNCE_MS = 300
 // Bundled Figtree (same family as app CSS) — troika needs a .ttf/.woff URL.
 const GRAPH_FONT_URL = "/fonts/figtree-latin-400-normal.ttf"
+
+/** Blend axis: 0 = pure sonic, 100 = pure vibe. API weights are complementary. */
+const WEIGHT_PRESETS = {
+  sonic: { blend: 0, label: "Sonic" },
+  balanced: { blend: 55, label: "Balanced" },
+  vibe: { blend: 100, label: "Vibe" },
+} as const
+
+type WeightPreset = keyof typeof WEIGHT_PRESETS
+
+function parseBlendParam(searchParams: URLSearchParams): number {
+  const blendRaw = searchParams.get("blend")
+  if (blendRaw != null && blendRaw !== "") {
+    const parsed = Number(blendRaw)
+    if (Number.isFinite(parsed)) {
+      return Math.max(0, Math.min(100, Math.round(parsed)))
+    }
+  }
+  // Legacy ?sonic=&vibe= → vibe share of the mix.
+  const sonic = Number(searchParams.get("sonic"))
+  const vibe = Number(searchParams.get("vibe"))
+  if (Number.isFinite(sonic) && Number.isFinite(vibe)) {
+    const total = Math.max(0, sonic) + Math.max(0, vibe)
+    if (total > 0) {
+      return Math.max(0, Math.min(100, Math.round((Math.max(0, vibe) / total) * 100)))
+    }
+  }
+  return WEIGHT_PRESETS.balanced.blend
+}
+
+function blendToWeights(blend: number): { sonic: number; vibe: number } {
+  const clamped = Math.max(0, Math.min(100, blend))
+  return { sonic: (100 - clamped) / 100, vibe: clamped / 100 }
+}
 
 // App slate neutrals. Built-in edge strokes are hidden; we draw gradient tubes.
 const graphTheme: Theme = {
@@ -366,6 +402,17 @@ export default function GraphPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const focusParam = searchParams.get("focus")
   const limit = DEFAULT_LIMIT
+  const blendPercent = parseBlendParam(searchParams)
+  const { sonic: sonicWeight, vibe: vibeWeight } = blendToWeights(blendPercent)
+  const activePreset = useMemo((): WeightPreset | null => {
+    for (const [key, preset] of Object.entries(WEIGHT_PRESETS) as [
+      WeightPreset,
+      (typeof WEIGHT_PRESETS)[WeightPreset],
+    ][]) {
+      if (preset.blend === blendPercent) return key
+    }
+    return null
+  }, [blendPercent])
   const player = useAudioPlayer()
 
   const [nodes, setNodes] = useState<Map<string, TrackOut>>(new Map())
@@ -524,9 +571,17 @@ export default function GraphPage() {
       const generation = ++expandGenerationRef.current
       setExpandingId(trackId)
       const { data, error: apiError } = await api.v1.getGraph({
-        query: { focus_track_id: trackId, limit },
+        query: {
+          focus_track_id: trackId,
+          limit,
+          sonic_weight: sonicWeight,
+          vibe_weight: vibeWeight,
+        },
       })
-      if (generation !== expandGenerationRef.current) return
+      if (generation !== expandGenerationRef.current) {
+        setExpandingId((current) => (current === trackId ? null : current))
+        return
+      }
       setExpandingId(null)
 
       if (apiError || !data) {
@@ -540,13 +595,32 @@ export default function GraphPage() {
       mergeGraph(data, trackId, replace)
       frameNeighborhood(trackId)
     },
-    [expandedIds, limit, mergeGraph, frameNeighborhood],
+    [expandedIds, limit, mergeGraph, frameNeighborhood, sonicWeight, vibeWeight],
+  )
+
+  /** Re-lens the current focus without locking the blend UI or reframing. */
+  const refreshBlend = useCallback(
+    async (trackId: string) => {
+      const generation = ++expandGenerationRef.current
+      const { data, error: apiError } = await api.v1.getGraph({
+        query: {
+          focus_track_id: trackId,
+          limit,
+          sonic_weight: sonicWeight,
+          vibe_weight: vibeWeight,
+        },
+      })
+      if (generation !== expandGenerationRef.current) return
+      if (apiError || !data || data.nodes.length === 0) return
+      mergeGraph(data, trackId, true)
+    },
+    [limit, mergeGraph, sonicWeight, vibeWeight],
   )
 
   const loadUnfocused = useCallback(async () => {
     setExpandingId("sample")
     const { data, error: apiError } = await api.v1.getGraph({
-      query: { limit },
+      query: { limit, sonic_weight: sonicWeight, vibe_weight: vibeWeight },
     })
     setExpandingId(null)
     if (apiError || !data || data.nodes.length === 0) {
@@ -559,7 +633,35 @@ export default function GraphPage() {
       return
     }
     mergeGraph(data, seed, true)
-  }, [limit, mergeGraph])
+  }, [limit, mergeGraph, sonicWeight, vibeWeight])
+
+  const setBlendPercent = useCallback(
+    (blend: number) => {
+      const nextBlend = Math.max(0, Math.min(100, Math.round(blend)))
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev)
+        next.set("blend", String(nextBlend))
+        next.delete("sonic")
+        next.delete("vibe")
+        if (!next.get("limit")) next.set("limit", String(DEFAULT_LIMIT))
+        return next
+      })
+    },
+    [setSearchParams],
+  )
+
+  // Debounced re-lens: keep controls live; only the latest weights hit the API.
+  const weightsKey = String(blendPercent)
+  const weightsKeyRef = useRef(weightsKey)
+  useEffect(() => {
+    if (!booted || !focusId) return
+    if (weightsKeyRef.current === weightsKey) return
+    const timer = window.setTimeout(() => {
+      weightsKeyRef.current = weightsKey
+      void refreshBlend(focusId)
+    }, 280)
+    return () => window.clearTimeout(timer)
+  }, [weightsKey, booted, focusId, refreshBlend])
 
   // camera-controls tuning reagraph exposes no props for: faster wheel
   // dolly, zooming toward the cursor. Polls until the canvas is live.
@@ -852,7 +954,7 @@ export default function GraphPage() {
               </span>
             </h1>
             <p className="text-muted-foreground text-xs leading-relaxed">
-              Explore tracks that sound alike.
+              Explore tracks by sound, vibe, or a blend of both.
               {expandingId ? " Expanding…" : null}
             </p>
           </div>
@@ -908,6 +1010,42 @@ export default function GraphPage() {
                 </ComboboxList>
               </ComboboxContent>
             </Combobox>
+          </div>
+
+          <div className="flex flex-col gap-3 pt-1">
+            <div className="flex flex-col gap-1.5">
+              <Label>Blend</Label>
+              <SegmentedControl
+                aria-label="Graph blend preset"
+                value={activePreset}
+                options={
+                  (Object.keys(WEIGHT_PRESETS) as WeightPreset[]).map((key) => ({
+                    value: key,
+                    label: WEIGHT_PRESETS[key].label,
+                  }))
+                }
+                onValueChange={(key) => {
+                  setBlendPercent(WEIGHT_PRESETS[key].blend)
+                }}
+              />
+            </div>
+            <label className="flex flex-col gap-1.5 text-xs">
+              <span className="text-muted-foreground flex justify-between">
+                <span>Sonic</span>
+                <span>Vibe</span>
+              </span>
+              <SteppedSlider
+                value={blendPercent}
+                onValueChange={setBlendPercent}
+                min={0}
+                max={100}
+                step={5}
+                aria-label="Blend from sonic to vibe"
+              />
+              <span className="text-muted-foreground text-center tabular-nums">
+                {blendPercent}% vibe
+              </span>
+            </label>
           </div>
         </div>
 

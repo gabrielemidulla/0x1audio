@@ -285,8 +285,11 @@ class VectorStore:
         *,
         focus_track_id: str | None,
         limit: int,
+        sonic_weight: float | None = None,
+        vibe_weight: float | None = None,
     ) -> tuple[list[str], list[dict[str, Any]]]:
         limit = max(2, min(limit, 24))
+        weights = {"sonic_weight": sonic_weight, "vibe_weight": vibe_weight}
         if focus_track_id:
             focus_records = self.client.retrieve(
                 collection_name=self.collection,
@@ -300,8 +303,8 @@ class VectorStore:
                 and focus.vector
                 and (focus.payload or {}).get("kind") == "track"
             ):
-                records = self._neighbor_records_for_focus(focus, limit)
-                return self._build_graph(records)
+                records = self._neighbor_records_for_focus(focus, limit, **weights)
+                return self._build_graph(records, **weights)
 
         records, _ = self.client.scroll(
             collection_name=self.collection,
@@ -310,9 +313,16 @@ class VectorStore:
             with_payload=True,
             with_vectors=True,
         )
-        return self._build_graph(records)
+        return self._build_graph(records, **weights)
 
-    def _neighbor_records_for_focus(self, focus: Any, limit: int) -> list[Any]:
+    def _neighbor_records_for_focus(
+        self,
+        focus: Any,
+        limit: int,
+        *,
+        sonic_weight: float | None = None,
+        vibe_weight: float | None = None,
+    ) -> list[Any]:
         focus_id = str(focus.id)
         candidates: dict[str, dict[str, float]] = {
             focus_id: {"audio_score": 1.0, "profile_score": 1.0}
@@ -363,6 +373,8 @@ class VectorStore:
             key=lambda track_id: combined_graph_score(
                 candidates[track_id]["audio_score"],
                 candidates[track_id]["profile_score"],
+                sonic_weight=sonic_weight,
+                vibe_weight=vibe_weight,
             ),
             reverse=True,
         )[: max(limit - 1, 0)]
@@ -382,7 +394,13 @@ class VectorStore:
             ]
         return [focus, *neighbors]
 
-    def _build_graph(self, records: list[Any]) -> tuple[list[str], list[dict[str, Any]]]:
+    def _build_graph(
+        self,
+        records: list[Any],
+        *,
+        sonic_weight: float | None = None,
+        vibe_weight: float | None = None,
+    ) -> tuple[list[str], list[dict[str, Any]]]:
         profile_vectors = self._load_profile_vectors([str(record.id) for record in records])
         pairwise: list[tuple[str, str, float, float, float]] = []
 
@@ -402,7 +420,12 @@ class VectorStore:
                     if left_profile and right_profile
                     else 0.0
                 )
-                weight = combined_graph_score(audio_weight, profile_weight)
+                weight = combined_graph_score(
+                    audio_weight,
+                    profile_weight,
+                    sonic_weight=sonic_weight,
+                    vibe_weight=vibe_weight,
+                )
                 pairwise.append(
                     (left_id, right_id, weight, audio_weight, profile_weight)
                 )

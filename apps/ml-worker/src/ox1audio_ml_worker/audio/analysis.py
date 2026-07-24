@@ -10,7 +10,7 @@ import numpy as np
 
 from ox1audio_ml_worker.audio.tagging import analyze_rich_audio
 
-# LAION-CLAP larger_clap_music feature extractor expects 48 kHz mono.
+# LAION-CLAP music_and_speech feature extractor expects 48 kHz mono.
 SAMPLE_RATE = 48_000
 SEGMENT_SECONDS = 30
 MAX_SEGMENTS = 12
